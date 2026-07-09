@@ -95,14 +95,32 @@
             style="text-align:center; background:var(--bg-0); border-radius:4px; padding:8px; font-weight:700; font-size:18px;"
           />
           <span style="font-weight:600;">{{ m.away }}</span>
-          <span class="mono" style="font-size:11px;" :class="qualifiedClass(m.id)">
+          <div v-if="isDraw(m.id)" class="classified-pills" style="max-width: 130px;">
+            <button
+              type="button"
+              class="pill"
+              :class="{ on: draftResult(m.id).qualified === 'home' }"
+              :disabled="savingId === m.id"
+              @click="setQualified(m.id, 'home')"
+              :title="`Marca a ${m.home} como clasificado (ganó en penales o tiempo extra)`"
+            >✓ {{ m.home }}</button>
+            <button
+              type="button"
+              class="pill"
+              :class="{ on: draftResult(m.id).qualified === 'away' }"
+              :disabled="savingId === m.id"
+              @click="setQualified(m.id, 'away')"
+              :title="`Marca a ${m.away} como clasificado (ganó en penales o tiempo extra)`"
+            >✓ {{ m.away }}</button>
+          </div>
+          <span v-else class="mono" style="font-size:11px;" :class="qualifiedClass(m.id)">
             {{ qualifiedLabel(m.id) }}
           </span>
           <button
             class="status-badge-btn"
             :class="statusClass(m.id)"
-            :disabled="!canFinish(m.id) || savingId === m.id"
-            :title="canFinish(m.id) ? (isFinished(m.id) ? 'Reabrir partido' : 'Marcar como finalizado') : 'Cargá los dos marcadores antes'"
+            :disabled="!canFinish(m.id) || (isDraw(m.id) && !draftResult(m.id).qualified) || savingId === m.id"
+            :title="canFinish(m.id) ? (isFinished(m.id) ? 'Reabrir partido' : (isDraw(m.id) ? 'Indicá quién clasifica (ganador en penales/extra)' : 'Marcar como finalizado')) : 'Cargá los dos marcadores antes'"
             @click="toggleFinished(m.id)"
           >
             <span v-if="savingId === m.id">…</span>
@@ -202,6 +220,10 @@ function canFinish(matchId) {
   const r = draftResult(matchId);
   return Number.isInteger(r.home) && Number.isInteger(r.away);
 }
+function isDraw(matchId) {
+  const r = draftResult(matchId);
+  return Number.isInteger(r.home) && Number.isInteger(r.away) && r.home === r.away;
+}
 function statusClass(matchId) {
   if (isFinished(matchId)) return 'final';
   const r = draftResult(matchId);
@@ -258,6 +280,22 @@ async function toggleFinished(matchId) {
     if (idx >= 0) store.results[idx] = { ...store.results[idx], finished: !current };
     await store.refreshResults();
     toast(current ? 'Partido reabierto' : 'Partido finalizado', 'good');
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    savingId.value = '';
+  }
+}
+
+async function setQualified(matchId, side) {
+  const r = draftResult(matchId);
+  savingId.value = matchId;
+  try {
+    await api.upsertResult(matchId, { home: r.home, away: r.away, qualified: side, finished: r.finished });
+    const idx = store.results.findIndex(x => x.matchId === matchId);
+    if (idx >= 0) store.results[idx] = { ...store.results[idx], qualified: side };
+    await store.refreshResults();
+    toast(`Clasificado: ${store.matchesById.get(matchId)?.[side] || side}`, 'good');
   } catch (e) {
     toast(e.message, 'error');
   } finally {
