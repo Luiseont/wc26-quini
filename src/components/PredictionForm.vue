@@ -103,25 +103,52 @@ if (props.editing) {
   }
 }
 
-// Resolve "WQF1"/"WSF1" placeholders against the user's CURRENT predictions
-// for the source match. Falls back to the placeholder text if the user
-// hasn't predicted that source match yet.
-function resolveTeamForUser(team) {
+// Resolve "WQF1"/"WSF1" placeholders against the user's CURRENT predictions,
+// walking up the chain recursively. Falls back to the placeholder text if
+// the user hasn't predicted enough to resolve.
+//
+// Strategy: for each placeholder, we need to know the SOURCE match's static
+// home/away names (the ones with placeholders like WQF1, WQF2) so that
+// picking 'home' gives us 'WQF1' and we can recurse on that.
+// `store.matches` from the server has these resolved against actual results,
+// so when no upstream result exists we can't read them there.
+// We work around this by tracking the placeholder-to-team mapping locally:
+//   "WQF1" -> whatever the source match's STATIC home team is (e.g. 'Francia')
+// We resolve that chain in this component using the original placeholder text.
+const STATIC_TEAMS = {
+  QF1: { home: 'Francia',  away: 'Marruecos' },
+  QF2: { home: 'España',   away: 'Bélgica' },
+  QF3: { home: 'Noruega',  away: 'Inglaterra' },
+  QF4: { home: 'Argentina', away: 'Suiza' },
+  SF1: { home: 'WQF1', away: 'WQF2' },
+  SF2: { home: 'WQF3', away: 'WQF4' },
+  F1:  { home: 'WSF1', away: 'WSF2' },
+};
+
+function resolveTeamForUser(team, depth = 0) {
+  if (depth > 4) return team;
   if (typeof team !== 'string' || !team.startsWith('W') || team.length < 3) return team;
+
   const sourceMatchId = team.slice(1);
-  const sourceMatch = store.matches.find(m => m.id === sourceMatchId);
-  if (!sourceMatch) return team;
+  const sourceStatic = STATIC_TEAMS[sourceMatchId];
+  if (!sourceStatic) return team;
+
   const pred = predictions[sourceMatchId];
-  if (!pred) return team;
   let side = null;
-  if (pred.qualified === 'home' || pred.qualified === 'away') {
-    side = pred.qualified;
-  } else if (pred.home != null && pred.away != null) {
-    if (pred.home > pred.away) side = 'home';
-    else if (pred.away > pred.home) side = 'away';
+  if (pred) {
+    if (pred.qualified === 'home' || pred.qualified === 'away') {
+      side = pred.qualified;
+    } else if (pred.home != null && pred.away != null) {
+      if (pred.home > pred.away) side = 'home';
+      else if (pred.away > pred.home) side = 'away';
+    }
   }
   if (!side) return team;
-  return side === 'home' ? sourceMatch.home : sourceMatch.away;
+
+  const winningTeam = side === 'home' ? sourceStatic.home : sourceStatic.away;
+  // If still a placeholder (e.g. SF1.home='WQF1' became winningTeam), recurse
+  if (winningTeam.startsWith('W')) return resolveTeamForUser(winningTeam, depth + 1);
+  return winningTeam;
 }
 
 // Same as stageMatches but with team names resolved against user's predictions.
