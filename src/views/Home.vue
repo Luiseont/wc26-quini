@@ -1,13 +1,6 @@
 <template>
   <section class="hero-stats">
     <div class="hero-stat">
-      <div class="hero-stat-label">Cuota campeón · Favorito</div>
-      <div class="hero-stat-value good">
-        <span class="name">BRA</span>
-        <span>+450</span>
-      </div>
-    </div>
-    <div class="hero-stat">
       <div class="hero-stat-label">Partidos restantes</div>
       <div class="hero-stat-value">
         <span class="name">Cuartos → Final</span>
