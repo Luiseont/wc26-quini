@@ -52,7 +52,10 @@
     </div>
 
     <div>
-      <PredictionForm @saved="onSaved" :editing="editing" />
+      <div v-if="tournamentStarted" class="banner warn" style="margin-bottom: 14px;">
+        <span><strong>Torneo en curso.</strong> Las predicciones están cerradas: ya hay resultados cargados.</span>
+      </div>
+      <PredictionForm v-else @saved="onSaved" :editing="editing" />
     </div>
   </div>
 
@@ -148,6 +151,11 @@ const averageExact = computed(() => {
     acc + (p.perMatch || []).filter(m => m.rule === 'EXACT_WINNER_SCORE').length, 0);
   return Math.round((totalExact / (store.leaderboard.length * store.matches.length)) * 100);
 });
+
+// Tournament is "started" when any result has scores or is finalized.
+const tournamentStarted = computed(() =>
+  store.results.some(r => r.finished || Number.isInteger(r.home) || Number.isInteger(r.away))
+);
 
 function totalFor(id) {
   const row = store.leaderboard.find(r => r.id === id);

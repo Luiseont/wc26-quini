@@ -79,18 +79,6 @@ test('Admin gate: PUT /api/results/QF1 without key -> 401', async () => {
   assert.equal(status, 401);
 });
 
-test('Admin can update a result with the right key', async () => {
-  const { status, body } = await fetchJson('/api/results/QF1', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'x-admin-key': 'wc26-amigos-2026' },
-    body: JSON.stringify({ home: 2, away: 1, finished: true }),
-  });
-  assert.equal(status, 200);
-  assert.equal(body.result.finished, true);
-  assert.equal(body.result.home, 2);
-  assert.equal(body.result.away, 1);
-});
-
 test('Create a participant and read it back', async () => {
   const { status, body } = await fetchJson('/api/participants', {
     method: 'POST',
@@ -121,6 +109,32 @@ test('Duplicate name is rejected with 409', async () => {
   });
   assert.equal(status, 409);
   assert.match(body.error, /ya existe/i);
+});
+
+test('Admin can update a result with the right key', async () => {
+  const { status, body } = await fetchJson('/api/results/QF1', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-admin-key': 'wc26-amigos-2026' },
+    body: JSON.stringify({ home: 2, away: 1, finished: true }),
+  });
+  assert.equal(status, 200);
+  assert.equal(body.result.finished, true);
+  assert.equal(body.result.home, 2);
+  assert.equal(body.result.away, 1);
+});
+
+test('New participant blocked after results loaded (predictions closed)', async () => {
+  // QF1 was finalized in the previous test. A new participant must be rejected.
+  const { status, body } = await fetchJson('/api/participants', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Latecomer',
+      predictions: [{ matchId: 'QF1', home: 1, away: 0 }],
+    }),
+  });
+  assert.equal(status, 409);
+  assert.match(body.error, /predicciones se cierran|ya hay resultados/i);
 });
 
 test('Leaderboard reflects entered result', async () => {

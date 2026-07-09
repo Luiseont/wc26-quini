@@ -83,6 +83,8 @@
             type="number" min="0" max="30"
             :value="resultHome(m.id)"
             @input="setResult(m.id, 'home', $event.target.value)"
+            :disabled="isFinished(m.id)"
+            :title="isFinished(m.id) ? 'Partido finalizado: usá Reabrir para editarlo' : ''"
             :class="['mono', inputState(m.id)]"
             style="text-align:center; background:var(--bg-0); border-radius:4px; padding:8px; font-weight:700; font-size:18px;"
           />
@@ -91,6 +93,8 @@
             type="number" min="0" max="30"
             :value="resultAway(m.id)"
             @input="setResult(m.id, 'away', $event.target.value)"
+            :disabled="isFinished(m.id)"
+            :title="isFinished(m.id) ? 'Partido finalizado: usá Reabrir para editarlo' : ''"
             :class="['mono', inputState(m.id)]"
             style="text-align:center; background:var(--bg-0); border-radius:4px; padding:8px; font-weight:700; font-size:18px;"
           />
@@ -259,12 +263,16 @@ function qualifiedClass(matchId) {
 async function setResult(matchId, side, val) {
   const v = val === '' ? null : Number(val);
   if (v !== null && (!Number.isInteger(v) || v < 0 || v > 30)) return;
+  // Refuse to edit a finalized match — admin must use the toggle button to reopen first.
+  if (isFinished(matchId)) {
+    toast('Partido finalizado: usá "Reabrir" para editarlo', 'error');
+    return;
+  }
   const existing = store.resultsById.get(matchId) || { matchId, home: null, away: null, finished: false };
   const updated = { ...existing, home: side === 'home' ? v : existing.home, away: side === 'away' ? v : existing.away, finished: false };
   const idx = store.results.findIndex(r => r.matchId === matchId);
   if (idx >= 0) store.results[idx] = updated;
   else store.results.push(updated);
-  // Auto-save
   try {
     await api.upsertResult(matchId, { home: updated.home, away: updated.away, finished: false });
   } catch (e) { toast(e.message, 'error'); }
