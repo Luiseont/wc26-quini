@@ -1,7 +1,7 @@
 // Storage abstraction. Backends (in priority order):
-//   1. Vercel KV  — when KV_REST_API_URL is set
-//   2. MongoDB    — legacy, when MONGODB_URI is set
-//   3. Memory     — fallback for local dev (data lost on restart)
+//   1. Redis     — when REDIS_URL (or KV_REST_API_URL) is set
+//   2. MongoDB   — legacy, when MONGODB_URI is set
+//   3. Memory    — fallback for local dev (data lost on restart)
 //
 // All backends expose the same public functions so the API handlers don't
 // need to change.
@@ -24,7 +24,7 @@ function seedMemory() {
 
 async function connect() {
   if (db) return db;
-  if (process.env.KV_REST_API_URL) {
+  if (process.env.REDIS_URL || process.env.KV_REST_API_URL) {
     mode = 'kv';
     kvModule = await import('./kv.js');
     db = kvModule;
