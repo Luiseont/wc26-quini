@@ -40,7 +40,7 @@ async function request(path, { method = 'GET', body, admin = false, signal } = {
 export const api = {
   health: () => request('/api/health'),
   matches: () => request('/api/matches'),
-  results: () => request('/api/results'),
+  results: () => request('/api/all-results'),
   participants: () => request('/api/participants'),
   participant: (id) => request(`/api/participants/${encodeURIComponent(id)}`),
   createParticipant: (payload) => request('/api/participants', { method: 'POST', body: payload }),
