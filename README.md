@@ -71,23 +71,29 @@ desarrollo, **no apto para producción** (los datos se pierden al reiniciar).
 
 | Variable | Descripción | Default |
 |----------|-------------|---------|
-| `MONGODB_URI` | Cadena de conexión de MongoDB Atlas | (vacío → memoria) |
-| `MONGODB_DB` | Nombre de la base de datos | `wc26_quini` |
-| `ADMIN_KEY` | Clave compartida para endpoints de admin | `changeme` |
+| `KV_REST_API_URL` | Endpoint de Vercel KV (auto-inyectada) | (vacío → memoria) |
+| `KV_REST_API_TOKEN` | Token de Vercel KV (auto-inyectada) | (vacío) |
+| `MONGODB_URI` | Legacy: cadena de conexión MongoDB | (vacío) |
+| `MONGODB_DB` | Legacy: nombre de DB | `wc26_quini` |
 | `ALLOWED_ORIGIN` | Origen CORS permitido | `*` |
+
+La contraseña de admin **no** se configura por env var; está hardcodeada.
 
 ## Despliegue en Vercel
 
-1. Sube el repo a GitHub.
-2. Crea un proyecto en Vercel apuntando al repo. Vercel detecta Vite y las
+1. Subí el repo a GitHub.
+2. Creá un proyecto en Vercel apuntando al repo. Vercel detecta Vite y las
    funciones en `/api` automáticamente.
-3. Configura las variables de entorno (`MONGODB_URI`, `MONGODB_DB`, `ADMIN_KEY`)
-   en la sección *Environment Variables* del proyecto.
-4. (Opcional) Crea un cluster gratuito en MongoDB Atlas y copia la connection
-   string en `MONGODB_URI`.
+3. En el dashboard del proyecto: **Storage → Create Database → KV**. Vercel
+   inyecta `KV_REST_API_URL` y `KV_REST_API_TOKEN` como variables de entorno
+   automáticamente.
+4. Hacé deploy. La app debería funcionar con Vercel KV.
 
-Sin `MONGODB_URI` el deploy funciona pero los datos se pierden en cada cold
-start de las funciones serverless.
+**Admin:** la contraseña es `wc26-amigos-2026` (hardcodeada en
+`api/_lib/auth.js`, no requiere variable de entorno).
+
+Sin KV configurado, la app sigue funcionando pero usa el store en memoria
+(los datos se pierden en cada cold start de las funciones serverless).
 
 ## API
 
