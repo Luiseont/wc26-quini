@@ -11,7 +11,7 @@
       <div class="topbar-meta">SESIÓN ACTIVA · <span class="text-good">●</span></div>
     </div>
 
-    <div v-if="checked === false" class="banner info">
+    <div v-if="!isAdmin" class="banner info">
       <div class="flex-col" style="flex:1; gap:6px;">
         <strong>Introduce la clave de admin</strong>
         <span class="muted" style="font-size:13px;">Solo quien tenga la clave puede cargar resultados.</span>
