@@ -22,6 +22,7 @@
         v-for="m in stageMatches(stage.code)"
         :key="m.id"
         class="match-row"
+        :class="{ 'has-source': m.home.startsWith('W') || m.away.startsWith('W') }"
       >
         <span class="id">{{ m.id }}</span>
         <span class="team right">{{ m.home }}</span>
@@ -102,8 +103,38 @@ if (props.editing) {
   }
 }
 
+// Resolve "WQF1"/"WSF1" placeholders against the user's CURRENT predictions
+// for the source match. Falls back to the placeholder text if the user
+// hasn't predicted that source match yet.
+function resolveTeamForUser(team) {
+  if (typeof team !== 'string' || !team.startsWith('W') || team.length < 3) return team;
+  const sourceMatchId = team.slice(1);
+  const sourceMatch = store.matches.find(m => m.id === sourceMatchId);
+  if (!sourceMatch) return team;
+  const pred = predictions[sourceMatchId];
+  if (!pred) return team;
+  let side = null;
+  if (pred.qualified === 'home' || pred.qualified === 'away') {
+    side = pred.qualified;
+  } else if (pred.home != null && pred.away != null) {
+    if (pred.home > pred.away) side = 'home';
+    else if (pred.away > pred.home) side = 'away';
+  }
+  if (!side) return team;
+  return side === 'home' ? sourceMatch.home : sourceMatch.away;
+}
+
+// Same as stageMatches but with team names resolved against user's predictions.
+const resolvedMatches = computed(() =>
+  store.matches.map(m => ({
+    ...m,
+    home: resolveTeamForUser(m.home),
+    away: resolveTeamForUser(m.away),
+  }))
+);
+
 function stageMatches(code) {
-  return store.matches.filter(m => m.stage === code);
+  return resolvedMatches.value.filter(m => m.stage === code);
 }
 
 function getPred(matchId, key) {

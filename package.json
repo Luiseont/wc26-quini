@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/dev-api.mjs",
-    "test": "node --experimental-test-module-mocks --test test/points.test.mjs test/kv-store.test.mjs test/api.test.mjs",
+    "test": "node --experimental-test-module-mocks --test test/points.test.mjs test/matches.test.mjs test/kv-store.test.mjs test/api.test.mjs",
     "test:points": "node --test test/points.test.mjs",
     "test:api": "node --test test/api.test.mjs",
     "test:kv": "node --experimental-test-module-mocks --test test/kv-store.test.mjs"
