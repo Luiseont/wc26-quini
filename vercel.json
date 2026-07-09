@@ -2,6 +2,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/results/(.*)", "destination": "/api/results.js" },
+    { "source": "/api/participants/(.*)", "destination": "/api/participants.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

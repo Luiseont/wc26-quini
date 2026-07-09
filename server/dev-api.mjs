@@ -61,7 +61,7 @@ function findHandler(urlPath) {
   const segments = p.split('/').filter(Boolean); // ['api', 'participants', 'abc']
   if (segments[0] !== 'api') return null;
   const tail = segments.slice(1);
-  // Exact match
+  // 1) Exact / dynamic match
   for (const route of ROUTES) {
     if (route.segments.length !== tail.length) continue;
     let matches = true;
@@ -75,6 +75,15 @@ function findHandler(urlPath) {
       }
     }
     if (matches) return { file: route.file, params };
+  }
+  // 2) Prefix fallback: if a static api/<name>.js file exists, route any
+  //    /api/<name>/<sub> request to that file (the function parses req.url).
+  if (tail.length >= 2) {
+    for (const route of ROUTES) {
+      if (route.segments.length === 1 && route.segments[0] === tail[0]) {
+        return { file: route.file, params: {} };
+      }
+    }
   }
   return null;
 }

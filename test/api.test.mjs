@@ -63,8 +63,8 @@ test('GET /api/matches returns 7 matches with stages', async () => {
   assert.ok(body.matches.find(m => m.id === 'SF1'));
 });
 
-test('GET /api/all-results seeds 7 unfinished results', async () => {
-  const { status, body } = await fetchJson('/api/all-results');
+test('GET /api/results seeds 7 unfinished results', async () => {
+  const { status, body } = await fetchJson('/api/results');
   assert.equal(status, 200);
   assert.equal(body.results.length, 7);
   assert.ok(body.results.every(r => !r.finished));
