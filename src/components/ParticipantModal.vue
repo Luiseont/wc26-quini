@@ -79,6 +79,7 @@ const props = defineProps({
 defineEmits(['close', 'edit', 'delete']);
 
 const resultsById = computed(() => new Map(props.results.map(r => [r.matchId, r])));
+const matchesById = computed(() => new Map((props.matches || []).map(m => [m.id, m])));
 const perMatchById = computed(() => {
   const row = props.leaderboard.find(r => r.id === props.participant.id);
   if (!row) return new Map();
@@ -108,10 +109,12 @@ function actualResultFor(matchId) {
 function actualResultWinner(matchId) {
   const r = actualResultFor(matchId);
   if (!r) return '';
-  if (r.qualified === 'home') return matches.find(m => m.id === matchId)?.home || '';
-  if (r.qualified === 'away') return matches.find(m => m.id === matchId)?.away || '';
-  if (r.home > r.away) return matches.find(m => m.id === matchId)?.home || '';
-  if (r.away > r.home) return matches.find(m => m.id === matchId)?.away || '';
+  const m = matchesById.value.get(matchId);
+  if (!m) return '';
+  if (r.qualified === 'home') return m.home || '';
+  if (r.qualified === 'away') return m.away || '';
+  if (r.home > r.away) return m.home || '';
+  if (r.away > r.home) return m.away || '';
   return '';
 }
 
