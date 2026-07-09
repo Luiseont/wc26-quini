@@ -26,21 +26,28 @@
             <span>Visitante</span>
             <span style="text-align: right;">Puntos</span>
           </div>
-          <div
-            v-for="m in matches"
-            :key="m.id"
-            style="display:grid; grid-template-columns: 50px 1fr 50px 50px 1fr 90px; gap:10px; padding:13px 18px; align-items:center; border-bottom: 1px solid rgba(31, 37, 48, 0.6);"
-          >
-            <span class="muted mono" style="font-size: 11px;">{{ m.id }}</span>
-            <span :class="{ 'text-gold': pickOf(m.id) === 'home' }" style="font-weight: 600; text-align: right;">{{ m.home }}</span>
-            <span class="mono" style="text-align: center;">{{ scoreStr(predOf(m.id), 'home') }}</span>
-            <span class="mono" style="text-align: center;">{{ scoreStr(predOf(m.id), 'away') }}</span>
-            <span :class="{ 'text-gold': pickOf(m.id) === 'away' }" style="font-weight: 600;">{{ m.away }}</span>
-            <span v-if="resultOf(m.id)" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
-              <span class="mono" :class="pointsClass(m.id)" style="font-weight: 700; font-size: 16px;">{{ pointsFor(m.id) }}</span>
-              <span v-if="ruleLabel(m.id)" class="muted mono" style="font-size: 10px;">{{ ruleLabel(m.id) }}</span>
-            </span>
-            <span v-else class="muted" style="text-align: right; font-size: 12px;">—</span>
+          <div v-for="m in matches" :key="m.id" class="modal-match-block">
+            <div v-if="actualResultFor(m.id)" class="actual-result">
+              <span class="actual-result-label">Resultado</span>
+              <span class="actual-result-score">
+                <strong>{{ m.home }}</strong>
+                <span class="actual-result-numbers">{{ actualResultFor(m.id).home }} – {{ actualResultFor(m.id).away }}</span>
+                <strong>{{ m.away }}</strong>
+              </span>
+              <span class="actual-result-winner">→ {{ actualResultWinner(m.id) }} clasificó</span>
+            </div>
+            <div style="display:grid; grid-template-columns: 50px 1fr 50px 50px 1fr 90px; gap:10px; padding:13px 18px; align-items:center; border-bottom: 1px solid rgba(31, 37, 48, 0.6);">
+              <span class="muted mono" style="font-size: 11px;">{{ m.id }}</span>
+              <span :class="{ 'text-gold': pickOf(m.id) === 'home' }" style="font-weight: 600; text-align: right;">{{ m.home }}</span>
+              <span class="mono" style="text-align: center;">{{ scoreStr(predOf(m.id), 'home') }}</span>
+              <span class="mono" style="text-align: center;">{{ scoreStr(predOf(m.id), 'away') }}</span>
+              <span :class="{ 'text-gold': pickOf(m.id) === 'away' }" style="font-weight: 600;">{{ m.away }}</span>
+              <span v-if="resultOf(m.id)" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                <span class="mono" :class="pointsClass(m.id)" style="font-weight: 700; font-size: 16px;">{{ pointsFor(m.id) }}</span>
+                <span v-if="ruleLabel(m.id)" class="muted mono" style="font-size: 10px;">{{ ruleLabel(m.id) }}</span>
+              </span>
+              <span v-else class="muted" style="text-align: right; font-size: 12px;">—</span>
+            </div>
           </div>
         </div>
 
@@ -54,7 +61,6 @@
       </div>
       <div class="footer">
         <button class="btn danger" @click="$emit('delete', participant)">Eliminar</button>
-        <button class="btn" @click="$emit('edit', participant)">Editar predicciones</button>
         <button class="btn primary" @click="$emit('close')">Cerrar</button>
       </div>
     </div>
@@ -94,6 +100,21 @@ function resultOf(matchId) {
   return resultsById.value.get(matchId);
 }
 
+function actualResultFor(matchId) {
+  const r = resultOf(matchId);
+  return r && r.finished ? r : null;
+}
+
+function actualResultWinner(matchId) {
+  const r = actualResultFor(matchId);
+  if (!r) return '';
+  if (r.qualified === 'home') return matches.find(m => m.id === matchId)?.home || '';
+  if (r.qualified === 'away') return matches.find(m => m.id === matchId)?.away || '';
+  if (r.home > r.away) return matches.find(m => m.id === matchId)?.home || '';
+  if (r.away > r.home) return matches.find(m => m.id === matchId)?.away || '';
+  return '';
+}
+
 function pickOf(matchId) {
   return predOf(matchId)?.qualified;
 }
@@ -111,6 +132,7 @@ function pointsClass(matchId) {
   const r = perMatchById.value.get(matchId);
   if (!r || !r.rule) return 'cell-pending';
   if (r.rule === 'EXACT_WINNER_SCORE' || r.rule === 'EXACT_SCORE_DIFFERENT_WINNER') return 'cell-gold';
+  if (r.rule === 'INVERTED_SCORE') return 'cell-warn';
   if (r.points > 0) return 'cell-good';
   if (r.points < 0) return 'cell-bad';
   return 'cell-pending';
