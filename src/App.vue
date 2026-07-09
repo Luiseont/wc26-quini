@@ -1,67 +1,42 @@
 <template>
   <div class="container">
-    <header class="hero">
-      <div class="row wrap" style="justify-content: space-between; gap: 16px;">
-        <div>
-          <h1>Quiniela WC 2026</h1>
-          <p>4tos de final → Final · Selecciona los marcadores y al equipo que avanza en cada partido.</p>
-        </div>
-        <div class="row" style="gap: 8px;">
-          <span v-if="store.health" class="kbd" :title="`Modo de almacenamiento: ${store.health.mode}`">
-            {{ store.health.finished }} / {{ store.health.totalMatches }} partidos
-            · {{ store.health.participants }} participantes
-          </span>
-          <button class="btn ghost" @click="reload" :disabled="store.loading">
-            {{ store.loading ? 'Cargando…' : 'Actualizar' }}
-          </button>
-          <router-link to="/admin" class="btn">Admin</router-link>
-        </div>
+    <header class="topbar">
+      <div style="display:flex; align-items:center; gap:24px;">
+        <div class="topbar-brand">QUINIELA<span class="dot">·</span>WC26</div>
+        <nav class="topbar-nav">
+          <router-link to="/" :class="{ active: $route.path === '/' }">Inicio</router-link>
+          <router-link to="/leaderboard" :class="{ active: $route.path === '/leaderboard' }">Ranking</router-link>
+          <router-link to="/admin" :class="{ active: $route.path === '/admin' }">Admin</router-link>
+        </nav>
       </div>
-      <nav class="tabs">
-        <router-link to="/" :class="{ active: $route.path === '/' }">Quiniela</router-link>
-        <router-link to="/leaderboard" :class="{ active: $route.path === '/leaderboard' }">Tabla</router-link>
-      </nav>
+      <div class="topbar-meta">
+        <span>CUPO <strong>{{ store.participants.length }}</strong> / 100</span>
+        <span style="margin: 0 8px; color: var(--line);">|</span>
+        <span class="warn">CIERRA 11 JUL · 12:00</span>
+      </div>
     </header>
-
-    <div v-if="store.error" class="banner error">
-      <strong>Error:</strong> {{ store.error }}
-    </div>
-    <div v-else-if="store.health && store.health.mode === 'memory'" class="banner warn">
-      <strong>Modo memoria.</strong> Los datos se perderán al reiniciar.
-      Configura <code class="kbd">MONGODB_URI</code> en Vercel para persistencia real.
-    </div>
 
     <router-view />
 
-    <div v-if="toast" class="toast" :class="toastClass">{{ toast }}</div>
+    <div v-if="toastMsg" :class="['toast', toastKind]">{{ toastMsg }}</div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, provide, watch } from 'vue';
+import { ref, provide } from 'vue';
 import { useDataStore } from './store.js';
 
 const store = useDataStore();
-const toast = ref('');
-const toastKind = ref('good');
+store.refreshAll();
+
+const toastMsg = ref('');
+const toastKind = ref('');
 let toastTimer = null;
-
-const toastClass = ref('good');
-watch(toastKind, v => { toastClass.value = v; });
-
-function showToast(msg, kind = 'good') {
-  toast.value = msg;
+function toast(msg, kind = '') {
+  toastMsg.value = msg;
   toastKind.value = kind;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toast.value = ''; }, 2400);
+  toastTimer = setTimeout(() => { toastMsg.value = ''; }, 2400);
 }
-
-provide('toast', showToast);
-
-onMounted(() => store.refreshAll());
-
-async function reload() {
-  await store.refreshAll();
-  showToast('Datos actualizados');
-}
+provide('toast', toast);
 </script>
