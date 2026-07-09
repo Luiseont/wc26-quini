@@ -26,7 +26,7 @@
             <span>Visitante</span>
             <span style="text-align: right;">Puntos</span>
           </div>
-          <div v-for="m in matches" :key="m.id" class="modal-match-block">
+          <div v-for="m in displayMatches" :key="m.id" class="modal-match-block">
             <div v-if="actualResultFor(m.id)" class="actual-result">
               <span class="actual-result-label">Resultado</span>
               <span class="actual-result-score">
@@ -85,6 +85,49 @@ const perMatchById = computed(() => {
   if (!row) return new Map();
   return new Map(row.perMatch.map(m => [m.matchId, m]));
 });
+
+// Static team map (real QF matchups) + placeholders for SF/F. Used to
+// resolve WQF1/WSF1 placeholders against the participant's own predictions
+// when actual results haven't been loaded yet.
+const STATIC_TEAMS = {
+  QF1: { home: 'Francia',   away: 'Marruecos' },
+  QF2: { home: 'España',    away: 'Bélgica' },
+  QF3: { home: 'Noruega',   away: 'Inglaterra' },
+  QF4: { home: 'Argentina', away: 'Suiza' },
+  SF1: { home: 'WQF1', away: 'WQF2' },
+  SF2: { home: 'WQF3', away: 'WQF4' },
+  F1:  { home: 'WSF1', away: 'WSF2' },
+};
+
+function resolveTeamForParticipant(team, depth = 0) {
+  if (depth > 4) return team;
+  if (typeof team !== 'string' || !team.startsWith('W') || team.length < 3) return team;
+  const sourceMatchId = team.slice(1);
+  const sourceStatic = STATIC_TEAMS[sourceMatchId];
+  if (!sourceStatic) return team;
+  const pred = (props.participant.predictions || []).find(p => p.matchId === sourceMatchId);
+  let side = null;
+  if (pred) {
+    if (pred.qualified === 'home' || pred.qualified === 'away') {
+      side = pred.qualified;
+    } else if (Number.isInteger(pred.home) && Number.isInteger(pred.away)) {
+      if (pred.home > pred.away) side = 'home';
+      else if (pred.away > pred.home) side = 'away';
+    }
+  }
+  if (!side) return team;
+  const winningTeam = side === 'home' ? sourceStatic.home : sourceStatic.away;
+  if (winningTeam.startsWith('W')) return resolveTeamForParticipant(winningTeam, depth + 1);
+  return winningTeam;
+}
+
+const displayMatches = computed(() =>
+  (props.matches || []).map(m => ({
+    ...m,
+    home: resolveTeamForParticipant(m.home),
+    away: resolveTeamForParticipant(m.away),
+  }))
+);
 
 const total = computed(() => {
   const row = props.leaderboard.find(r => r.id === props.participant.id);
