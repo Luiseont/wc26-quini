@@ -3,6 +3,8 @@ import { getResult, upsertResult } from '../_lib/store.js';
 import { isAdminRequest } from '../_lib/auth.js';
 
 export default handler(async (req, res) => {
+  // Diagnostic: log that this function was invoked
+  console.log('[results/[matchId]] hit:', { method: req.method, url: req.url, query: req.query });
   const matchId = req.query?.matchId || (req.url || '').split('?')[0].split('/').pop();
   if (!matchId) return sendJson(res, 400, { error: 'matchId requerido' });
 
