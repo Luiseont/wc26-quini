@@ -72,7 +72,9 @@ export function scorePrediction(prediction, result) {
     : (actualWinner === 'draw' ? null : actualWinner);
 
   const predictedWinner = determineWinner(prediction.home, prediction.away);
-  const predictedQualifier = predictedWinner === 'draw' ? null : predictedWinner;
+  const predictedQualifier = prediction.qualified === 'home' || prediction.qualified === 'away'
+    ? prediction.qualified
+    : (predictedWinner === 'draw' ? null : predictedWinner);
 
   breakdown.predictedWinner = predictedWinner;
   breakdown.actualWinner = actualWinner;

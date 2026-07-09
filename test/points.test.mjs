@@ -163,6 +163,30 @@ test('Rule 5 vs 1 priority when both could apply (penalty case)', () => {
   assert.equal(s.rule, 'EXACT_SCORE_DIFFERENT_WINNER');
 });
 
+test('Rule 4: predicted qualifier correct on a draw (penalty win)', () => {
+  // Luis predicted 0-0 with qualified=away. Actual is 1-1 with qualified=away.
+  // Scores differ so rule 5 (exact score) doesn't apply.
+  // predictedWinner='draw', predictedQualifier='away' (explicit).
+  // winnerCorrect=false, qualifierCorrect=true.
+  // → Rule 4 (QUALIFIED_TEAM): 5 pts.
+  const s = scorePrediction(
+    { matchId: 'QF2', home: 0, away: 0, qualified: 'away' },
+    { matchId: 'QF2', home: 1, away: 1, finished: true, qualified: 'away' },
+  );
+  assert.equal(s.points, 5);
+  assert.equal(s.rule, 'QUALIFIED_TEAM');
+});
+
+test('Rule 4: predicted qualifier wrong on a draw', () => {
+  // Luis predicted away qualifies, but home qualified in the actual result.
+  const s = scorePrediction(
+    { matchId: 'QF2', home: 0, away: 0, qualified: 'away' },
+    { matchId: 'QF2', home: 1, away: 1, finished: true, qualified: 'home' },
+  );
+  assert.equal(s.points, 0);
+  assert.equal(s.rule, null);
+});
+
 test('RULE_POINTS exports the expected canonical order', () => {
   assert.deepEqual(RULE_POINTS, [8, 7, 6, 5, 3]);
 });
