@@ -98,9 +98,16 @@
           <span class="mono" style="font-size:11px;" :class="qualifiedClass(m.id)">
             {{ qualifiedLabel(m.id) }}
           </span>
-          <span class="status-badge" :class="statusClass(m.id)">
-            {{ statusLabel(m.id) }}
-          </span>
+          <button
+            class="status-badge-btn"
+            :class="statusClass(m.id)"
+            :disabled="!canFinish(m.id) || savingId === m.id"
+            :title="canFinish(m.id) ? (isFinished(m.id) ? 'Reabrir partido' : 'Marcar como finalizado') : 'Cargá los dos marcadores antes'"
+            @click="toggleFinished(m.id)"
+          >
+            <span v-if="savingId === m.id">…</span>
+            <span v-else>{{ statusLabel(m.id) }}</span>
+          </button>
         </div>
       </div>
 
@@ -145,6 +152,7 @@ const isAdmin = ref(false);
 const checkError = ref('');
 const checking = ref(false);
 const loading = ref(false);
+const savingId = ref('');
 const inconsistencies = ref(null);
 const bulkText = ref('');
 const bulkParsed = ref([]);
@@ -190,6 +198,10 @@ function draftResult(matchId) {
 function resultHome(matchId) { const r = draftResult(matchId); return r.home ?? ''; }
 function resultAway(matchId) { const r = draftResult(matchId); return r.away ?? ''; }
 function isFinished(matchId) { return draftResult(matchId).finished; }
+function canFinish(matchId) {
+  const r = draftResult(matchId);
+  return Number.isInteger(r.home) && Number.isInteger(r.away);
+}
 function statusClass(matchId) {
   if (isFinished(matchId)) return 'final';
   const r = draftResult(matchId);
@@ -234,6 +246,23 @@ async function setResult(matchId, side, val) {
   try {
     await api.upsertResult(matchId, { home: updated.home, away: updated.away, finished: false });
   } catch (e) { toast(e.message, 'error'); }
+}
+
+async function toggleFinished(matchId) {
+  const current = isFinished(matchId);
+  const r = draftResult(matchId);
+  savingId.value = matchId;
+  try {
+    await api.upsertResult(matchId, { home: r.home, away: r.away, finished: !current });
+    const idx = store.results.findIndex(x => x.matchId === matchId);
+    if (idx >= 0) store.results[idx] = { ...store.results[idx], finished: !current };
+    await store.refreshResults();
+    toast(current ? 'Partido reabierto' : 'Partido finalizado', 'good');
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    savingId.value = '';
+  }
 }
 
 async function loadInconsistencies() {

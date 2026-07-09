@@ -494,6 +494,28 @@ label {
 .status-badge.live { color: var(--accent-warn); }
 .status-badge.next { color: var(--text-faint); }
 
+.status-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+}
+.status-badge-btn.final { color: var(--accent-good); border-color: var(--accent-good); background: rgba(34, 197, 94, 0.1); }
+.status-badge-btn.live { color: var(--accent-warn); border-color: var(--accent-warn); background: rgba(245, 158, 11, 0.1); }
+.status-badge-btn.next { color: var(--text-faint); border-color: var(--line); }
+.status-badge-btn:hover:not([disabled]) { filter: brightness(1.15); }
+.status-badge-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
 /* ===== Input state colors (Admin) ===== */
 
 input.state-final { border-color: var(--accent-good); color: var(--accent-good); }
