@@ -240,11 +240,10 @@ export async function resetAll() {
   if (mode === 'kv') {
     const ids = await kvModule.ksmembers('participants:idx');
     if (ids && ids.length) {
-      await Promise.all(ids.map(id => kvModule.kdel(`participants:${id}`)));
       const docs = await Promise.all(ids.map(id => kvModule.kget(`participants:${id}`).catch(() => null)));
-      await Promise.all(
-        docs.filter(Boolean).map(d => kvModule.kdel(`participants:name:${d.name.toLowerCase()}`))
-      );
+      const validDocs = docs.filter(Boolean);
+      await Promise.all(validDocs.map(d => kvModule.kdel(`participants:name:${d.name.toLowerCase()}`)));
+      await Promise.all(ids.map(id => kvModule.kdel(`participants:${id}`)));
       await kvModule.kdel('participants:idx');
     }
     const now = new Date().toISOString();
