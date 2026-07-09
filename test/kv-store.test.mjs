@@ -6,8 +6,7 @@
 // @vercel/kv surface for our store. Each test re-imports store.js with a
 // unique query string so the module's internal kv/db cache starts fresh.
 //
-// Running: `node --experimental-test-module-mocks --test test/kv-store.test.mjs`
-// (the npm script `test:kv` does this for you).
+// Running: `npm run test:kv` (or `npm test` to run all suites).
 import { test, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -88,9 +87,13 @@ test('KV: createParticipant stores and indexes by name', async () => {
   assert.ok(p.id);
   assert.equal(p.name, 'Marta');
 
+  const p2 = await store.createParticipant({ name: 'Martin', predictions: [] });
+  assert.notEqual(p.id, p2.id);
+
   const all = await store.listParticipants();
-  assert.equal(all.length, 1);
-  assert.equal(all[0].name, 'Marta');
+  assert.equal(all.length, 2);
+  const names = all.map((x) => x.name).sort();
+  assert.deepEqual(names, ['Marta', 'Martin']);
 });
 
 test('KV: duplicate name is rejected with 409', async () => {
@@ -103,7 +106,7 @@ test('KV: duplicate name is rejected with 409', async () => {
   );
 });
 
-test('KV: updateParticipant changes predictions', async () => {
+test('KV: updateParticipant changes predictions and renames', async () => {
   const store = await import(`../api/_lib/store.js?t=${Date.now()}`);
 
   const p = await store.createParticipant({
@@ -114,6 +117,13 @@ test('KV: updateParticipant changes predictions', async () => {
     predictions: [{ matchId: 'QF1', home: 2, away: 0 }],
   });
   assert.equal(updated.predictions[0].home, 2);
+
+  const renamed = await store.updateParticipant(p.id, { name: 'Ana Maria' });
+  assert.equal(renamed.name, 'Ana Maria');
+
+  const otherP = await store.createParticipant({ name: 'Ana', predictions: [] });
+  assert.ok(otherP.id);
+  assert.notEqual(otherP.id, p.id);
 });
 
 test('KV: deleteParticipant removes from index and name lookup', async () => {
@@ -123,6 +133,9 @@ test('KV: deleteParticipant removes from index and name lookup', async () => {
   await store.deleteParticipant(p.id);
   const all = await store.listParticipants();
   assert.equal(all.length, 0);
+
+  const recreated = await store.createParticipant({ name: 'Pepe', predictions: [] });
+  assert.ok(recreated.id);
 });
 
 test('KV: upsertResult stores and listResults returns all matches', async () => {
