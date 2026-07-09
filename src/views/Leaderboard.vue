@@ -1,15 +1,19 @@
 <template>
   <div>
-    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px; gap:12px; flex-wrap: wrap;">
       <div>
         <div class="section-eyebrow">Tabla de posiciones</div>
         <h1 class="section-h1">Ranking · Fase Final</h1>
       </div>
-      <div class="tabs-segment">
-        <button :class="{ on: filter === 'all' }" @click="filter = 'all'">Global</button>
-        <button :class="{ on: filter === 'QF' }" @click="filter = 'QF'">Cuartos</button>
-        <button :class="{ on: filter === 'SF' }" @click="filter = 'SF'">Semi</button>
-        <button :class="{ on: filter === 'F' }" @click="filter = 'F'">Final</button>
+      <div class="row gap-sm">
+        <span class="muted mono" style="font-size:11px;">{{ lastUpdated || '—' }}</span>
+        <button class="btn" @click="refresh" :disabled="refreshing">Refrescar</button>
+        <div class="tabs-segment">
+          <button :class="{ on: filter === 'all' }" @click="filter = 'all'">Global</button>
+          <button :class="{ on: filter === 'QF' }" @click="filter = 'QF'">Cuartos</button>
+          <button :class="{ on: filter === 'SF' }" @click="filter = 'SF'">Semi</button>
+          <button :class="{ on: filter === 'F' }" @click="filter = 'F'">Final</button>
+        </div>
       </div>
     </div>
 
@@ -61,11 +65,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, onMounted, onActivated } from 'vue';
 import { useDataStore } from '../store.js';
 
 const store = useDataStore();
 const filter = ref('all');
+const refreshing = ref(false);
+const lastUpdated = ref('');
+
+async function refresh() {
+  refreshing.value = true;
+  try {
+    await store.refreshAll();
+    lastUpdated.value = new Date().toLocaleTimeString();
+  } finally {
+    refreshing.value = false;
+  }
+}
+
+onMounted(refresh);
 
 function rankClass(i) {
   if (i === 0) return 'top1';
