@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "start": "node server/dev-api.mjs",
     "test:points": "node --test test/points.test.mjs",
-    "test:api": "node --test test/api.test.mjs"
+    "test:api": "node --test test/api.test.mjs",
+    "test:kv": "node --experimental-test-module-mocks --test test/kv-store.test.mjs"
   },
   "dependencies": {
     "@vercel/kv": "^3.0.0",
