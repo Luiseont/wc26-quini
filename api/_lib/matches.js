@@ -4,10 +4,10 @@
 // frontend resolves dynamically based on actual results (admin) or user
 // predictions (prediction form).
 export const MATCHES = [
-  { id: 'QF1', stage: 'QF', label: 'Cuartos 1', home: 'France',   away: 'Morocco',     order: 1 },
-  { id: 'QF2', stage: 'QF', label: 'Cuartos 2', home: 'Spain',    away: 'Belgium',     order: 2 },
-  { id: 'QF3', stage: 'QF', label: 'Cuartos 3', home: 'Norway',   away: 'England',     order: 3 },
-  { id: 'QF4', stage: 'QF', label: 'Cuartos 4', home: 'Argentina', away: 'Switzerland', order: 4 },
+  { id: 'QF1', stage: 'QF', label: 'Cuartos 1', home: 'Francia',  away: 'Marruecos',   order: 1 },
+  { id: 'QF2', stage: 'QF', label: 'Cuartos 2', home: 'España',   away: 'Bélgica',     order: 2 },
+  { id: 'QF3', stage: 'QF', label: 'Cuartos 3', home: 'Noruega',  away: 'Inglaterra',  order: 3 },
+  { id: 'QF4', stage: 'QF', label: 'Cuartos 4', home: 'Argentina', away: 'Suiza',       order: 4 },
   { id: 'SF1', stage: 'SF', label: 'Semifinal 1', home: 'WQF1', away: 'WQF2', order: 5 },
   { id: 'SF2', stage: 'SF', label: 'Semifinal 2', home: 'WQF3', away: 'WQF4', order: 6 },
   { id: 'F1',  stage: 'F',  label: 'Final',       home: 'WSF1',  away: 'WSF2',  order: 7 },
