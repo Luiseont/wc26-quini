@@ -1,14 +1,17 @@
-// Storage abstraction. Uses MongoDB Atlas when MONGODB_URI is set, otherwise
-// falls back to a single-process in-memory store. The in-memory store is fine
-// for local dev but WILL lose data on Vercel between cold starts, so the
-// production deployment must configure MONGODB_URI.
+// Storage abstraction. Backends (in priority order):
+//   1. Vercel KV  — when KV_REST_API_URL is set
+//   2. MongoDB    — legacy, when MONGODB_URI is set
+//   3. Memory     — fallback for local dev (data lost on restart)
+//
+// All backends expose the same public functions so the API handlers don't
+// need to change.
 import { MongoClient } from 'mongodb';
 import { MATCHES } from './matches.js';
 
 let mode = 'memory';
-let client = null;
-let db = null;
+let db = null;        // Mongo db | KV helpers module | null (memory)
 let memory = null;
+let kvModule = null;
 
 function seedMemory() {
   const now = new Date().toISOString();
@@ -21,13 +24,18 @@ function seedMemory() {
 
 async function connect() {
   if (db) return db;
+  if (process.env.KV_REST_API_URL) {
+    mode = 'kv';
+    kvModule = await import('./kv.js');
+    db = kvModule;
+    return db;
+  }
   const uri = process.env.MONGODB_URI;
   if (uri) {
     mode = 'mongo';
-    client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
     await client.connect();
     db = client.db(process.env.MONGODB_DB || 'wc26_quini');
-    // Ensure indexes
     await db.collection('participants').createIndex({ name: 1 }, { unique: true });
     await db.collection('results').createIndex({ matchId: 1 }, { unique: true });
     return db;
@@ -43,8 +51,16 @@ function mem() {
   return memory;
 }
 
+// ---- Participants ----
+
 export async function listParticipants() {
   await connect();
+  if (mode === 'kv') {
+    const ids = await kvModule.ksmembers('participants:idx');
+    if (!ids || ids.length === 0) return [];
+    const docs = await Promise.all(ids.map(id => kvModule.kget(`participants:${id}`)));
+    return docs.filter(Boolean).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  }
   if (mode === 'mongo') {
     return db.collection('participants').find({}, { projection: { _id: 0 } }).sort({ createdAt: 1 }).toArray();
   }
@@ -53,6 +69,10 @@ export async function listParticipants() {
 
 export async function getParticipant(id) {
   await connect();
+  if (mode === 'kv') {
+    const doc = await kvModule.kget(`participants:${id}`);
+    return doc || null;
+  }
   if (mode === 'mongo') {
     return db.collection('participants').findOne({ id }, { projection: { _id: 0 } });
   }
@@ -73,6 +93,15 @@ export async function createParticipant({ name, predictions }) {
     updatedAt: now,
   };
   if (!doc.name) throw httpError(400, 'Nombre requerido');
+
+  if (mode === 'kv') {
+    const existingId = await kvModule.kget(`participants:name:${doc.name.toLowerCase()}`);
+    if (existingId) throw httpError(409, 'Ya existe un participante con ese nombre');
+    await kvModule.kset(`participants:${doc.id}`, doc);
+    await kvModule.ksadd('participants:idx', doc.id);
+    await kvModule.kset(`participants:name:${doc.name.toLowerCase()}`, doc.id);
+    return doc;
+  }
   if (mode === 'mongo') {
     try {
       await db.collection('participants').insertOne(doc);
@@ -101,6 +130,21 @@ export async function updateParticipant(id, patch) {
   if (patch.predictions !== undefined) {
     update.predictions = normalizePredictions(patch.predictions);
   }
+
+  if (mode === 'kv') {
+    const existing = await kvModule.kget(`participants:${id}`);
+    if (!existing) throw httpError(404, 'Participante no encontrado');
+    if (update.name && update.name !== existing.name) {
+      const lower = update.name.toLowerCase();
+      const dupId = await kvModule.kget(`participants:name:${lower}`);
+      if (dupId && dupId !== id) throw httpError(409, 'Ya existe un participante con ese nombre');
+      await kvModule.kdel(`participants:name:${existing.name.toLowerCase()}`);
+      await kvModule.kset(`participants:name:${lower}`, id);
+    }
+    const merged = { ...existing, ...update };
+    await kvModule.kset(`participants:${id}`, merged);
+    return merged;
+  }
   if (mode === 'mongo') {
     const r = await db.collection('participants').findOneAndUpdate(
       { id },
@@ -119,6 +163,14 @@ export async function updateParticipant(id, patch) {
 
 export async function deleteParticipant(id) {
   await connect();
+  if (mode === 'kv') {
+    const existing = await kvModule.kget(`participants:${id}`);
+    if (!existing) throw httpError(404, 'Participante no encontrado');
+    await kvModule.kdel(`participants:${id}`);
+    await kvModule.ksrem('participants:idx', id);
+    await kvModule.kdel(`participants:name:${existing.name.toLowerCase()}`);
+    return { ok: true };
+  }
   if (mode === 'mongo') {
     const r = await db.collection('participants').deleteOne({ id });
     if (r.deletedCount === 0) throw httpError(404, 'Participante no encontrado');
@@ -130,8 +182,14 @@ export async function deleteParticipant(id) {
   return { ok: true };
 }
 
+// ---- Results ----
+
 export async function listResults() {
   await connect();
+  if (mode === 'kv') {
+    const docs = await Promise.all(MATCHES.map(m => kvModule.kget(`results:${m.id}`)));
+    return ensureAllMatches(docs.filter(Boolean));
+  }
   if (mode === 'mongo') {
     const docs = await db.collection('results').find({}, { projection: { _id: 0 } }).toArray();
     return ensureAllMatches(docs);
@@ -141,6 +199,10 @@ export async function listResults() {
 
 export async function getResult(matchId) {
   await connect();
+  if (mode === 'kv') {
+    const doc = await kvModule.kget(`results:${matchId}`);
+    return doc || defaultResult(matchId);
+  }
   if (mode === 'mongo') {
     const doc = await db.collection('results').findOne({ matchId }, { projection: { _id: 0 } });
     return doc || defaultResult(matchId);
@@ -153,6 +215,12 @@ export async function upsertResult(matchId, patch) {
   await connect();
   if (!MATCHES.find(m => m.id === matchId)) throw httpError(404, 'Partido no existe');
   const doc = normalizeResult({ matchId, ...patch });
+  if (mode === 'kv') {
+    const existing = await kvModule.kget(`results:${matchId}`);
+    const merged = { ...defaultResult(matchId), ...(existing || {}), ...doc, updatedAt: new Date().toISOString() };
+    await kvModule.kset(`results:${matchId}`, merged);
+    return merged;
+  }
   if (mode === 'mongo') {
     await db.collection('results').updateOne(
       { matchId },
@@ -169,6 +237,22 @@ export async function upsertResult(matchId, patch) {
 
 export async function resetAll() {
   await connect();
+  if (mode === 'kv') {
+    const ids = await kvModule.ksmembers('participants:idx');
+    if (ids && ids.length) {
+      await Promise.all(ids.map(id => kvModule.kdel(`participants:${id}`)));
+      const docs = await Promise.all(ids.map(id => kvModule.kget(`participants:${id}`).catch(() => null)));
+      await Promise.all(
+        docs.filter(Boolean).map(d => kvModule.kdel(`participants:name:${d.name.toLowerCase()}`))
+      );
+      await kvModule.kdel('participants:idx');
+    }
+    const now = new Date().toISOString();
+    await Promise.all(
+      MATCHES.map(m => kvModule.kset(`results:${m.id}`, { matchId: m.id, home: null, away: null, finished: false, updatedAt: now }))
+    );
+    return { ok: true };
+  }
   if (mode === 'mongo') {
     await db.collection('participants').deleteMany({});
     const fresh = MATCHES.map(m => ({ matchId: m.id, home: null, away: null, finished: false, updatedAt: new Date().toISOString() }));
