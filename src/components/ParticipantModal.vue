@@ -9,7 +9,7 @@
         <div class="row" style="margin-bottom: 16px;">
           <div class="card" style="flex: 1; padding: 14px;">
             <div class="muted" style="font-size: 12px;">Total</div>
-            <div style="font-size: 28px; font-weight: 800; color: var(--accent);">{{ total }} pts</div>
+            <div style="font-size: 28px; font-weight: 800; color: var(--accent-gold);">{{ total }} pts</div>
           </div>
           <div class="card" style="flex: 1; padding: 14px;">
             <div class="muted" style="font-size: 12px;">Predicciones</div>
@@ -17,13 +17,31 @@
           </div>
         </div>
 
-        <div v-for="m in matches" :key="m.id" class="match-row" :class="rowClass(m.id)">
-          <span class="stage">{{ m.label }}</span>
-          <span class="team" :class="{ winner: pickOf(m.id) === 'home' }">{{ m.home }}</span>
-          <span class="score">{{ scoreStr(predOf(m.id), 'home') }} – {{ scoreStr(predOf(m.id), 'away') }}</span>
-          <span class="team right" :class="{ winner: pickOf(m.id) === 'away' }">{{ m.away }}</span>
-          <span class="pts" v-if="resultOf(m.id)">{{ pointsFor(m.id) }}<small>{{ ruleLabel(m.id) }}</small></span>
-          <span class="pts" v-else style="opacity: 0.5;">—<small>sin resultado</small></span>
+        <div class="sb-table" style="padding: 0;">
+          <div style="display:grid; grid-template-columns: 50px 1fr 50px 50px 1fr 90px; gap:10px; padding:12px 18px; font-size:10px; color:var(--text-faint); letter-spacing:0.1em; text-transform:uppercase; background:var(--bg-0); border-bottom:1px solid var(--line);">
+            <span>ID</span>
+            <span style="text-align: right;">Local</span>
+            <span style="text-align: center;">Pts</span>
+            <span style="text-align: center;">Pts</span>
+            <span>Visitante</span>
+            <span style="text-align: right;">Puntos</span>
+          </div>
+          <div
+            v-for="m in matches"
+            :key="m.id"
+            style="display:grid; grid-template-columns: 50px 1fr 50px 50px 1fr 90px; gap:10px; padding:13px 18px; align-items:center; border-bottom: 1px solid rgba(31, 37, 48, 0.6);"
+          >
+            <span class="muted mono" style="font-size: 11px;">{{ m.id }}</span>
+            <span :class="{ 'text-gold': pickOf(m.id) === 'home' }" style="font-weight: 600; text-align: right;">{{ m.home }}</span>
+            <span class="mono" style="text-align: center;">{{ scoreStr(predOf(m.id), 'home') }}</span>
+            <span class="mono" style="text-align: center;">{{ scoreStr(predOf(m.id), 'away') }}</span>
+            <span :class="{ 'text-gold': pickOf(m.id) === 'away' }" style="font-weight: 600;">{{ m.away }}</span>
+            <span v-if="resultOf(m.id)" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+              <span class="mono" :class="pointsClass(m.id)" style="font-weight: 700; font-size: 16px;">{{ pointsFor(m.id) }}</span>
+              <span v-if="ruleLabel(m.id)" class="muted mono" style="font-size: 10px;">{{ ruleLabel(m.id) }}</span>
+            </span>
+            <span v-else class="muted" style="text-align: right; font-size: 12px;">—</span>
+          </div>
         </div>
 
         <div v-if="resultIssues.length" style="margin-top: 18px;">
@@ -89,10 +107,13 @@ function scoreStr(pred, side) {
   return pred[side];
 }
 
-function rowClass(matchId) {
-  const r = resultOf(matchId);
-  if (r && r.finished) return 'result has-result';
-  return '';
+function pointsClass(matchId) {
+  const r = perMatchById.value.get(matchId);
+  if (!r || !r.rule) return 'cell-pending';
+  if (r.rule === 'EXACT_WINNER_SCORE' || r.rule === 'EXACT_SCORE_DIFFERENT_WINNER') return 'cell-gold';
+  if (r.points > 0) return 'cell-good';
+  if (r.points < 0) return 'cell-bad';
+  return 'cell-pending';
 }
 
 const RULE_LABELS = {
