@@ -17,9 +17,8 @@ async function fetchJson(path, init = {}) {
 
 before(async () => {
   process.env.PORT = process.env.PORT || '8791';
-  process.env.ADMIN_KEY = 'testkey';
   server = spawn('node', ['server/dev-api.mjs'], {
-    env: { ...process.env, PORT: process.env.PORT, ADMIN_KEY: 'testkey' },
+    env: { ...process.env, PORT: process.env.PORT },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   baseUrl = `http://127.0.0.1:${process.env.PORT}`;
@@ -83,7 +82,7 @@ test('Admin gate: PUT /api/results/QF1 without key -> 401', async () => {
 test('Admin can update a result with the right key', async () => {
   const { status, body } = await fetchJson('/api/results/QF1', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'x-admin-key': 'testkey' },
+    headers: { 'Content-Type': 'application/json', 'x-admin-key': 'wc26-amigos-2026' },
     body: JSON.stringify({ home: 2, away: 1, finished: true }),
   });
   assert.equal(status, 200);
@@ -138,7 +137,7 @@ test('Leaderboard reflects entered result', async () => {
 
 test('Inconsistencies endpoint flags PREDICTED_DRAW for Marta', async () => {
   const { status, body } = await fetchJson('/api/admin/inconsistencies', {
-    headers: { 'x-admin-key': 'testkey' },
+    headers: { 'x-admin-key': 'wc26-amigos-2026' },
   });
   assert.equal(status, 200);
   const draw = body.predictionIssues.find(i => i.code === 'PREDICTED_DRAW' && i.participantName === 'Marta');
@@ -149,7 +148,7 @@ test('Inconsistencies endpoint flags PREDICTED_DRAW for Marta', async () => {
 
 test('Admin check endpoint reports the key as valid', async () => {
   const { status, body } = await fetchJson('/api/admin/check', {
-    headers: { 'x-admin-key': 'testkey' },
+    headers: { 'x-admin-key': 'wc26-amigos-2026' },
   });
   assert.equal(status, 200);
   assert.equal(body.ok, true);
