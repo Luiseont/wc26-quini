@@ -622,6 +622,47 @@ input.state-next { border-color: var(--line); color: var(--text-faint); }
 .modal .body { padding: 18px 20px; }
 .modal .footer { padding: 14px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
 
+/* ===== Rules modal ===== */
+.rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rule-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.rule-pts {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--bg-0);
+}
+.rule-pts-1 { background: var(--accent-gold); color: var(--bg-0); }
+.rule-pts-2 { background: #a78bfa; }
+.rule-pts-3 { background: var(--accent-info); }
+.rule-pts-4 { background: var(--accent-good); }
+.rule-pts-5 { background: var(--accent-warn); }
+.rule-pts-6 { background: var(--text-dim); }
+.rule-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+
 /* ===== Toast ===== */
 
 .toast {

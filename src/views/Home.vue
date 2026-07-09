@@ -1,4 +1,10 @@
 <template>
+  <div class="row" style="justify-content: flex-end; margin-bottom: 10px;">
+    <button class="btn" @click="showRules = true">
+      <span>?</span> Cómo se calculan los puntos
+    </button>
+  </div>
+
   <section class="hero-stats">
     <div class="hero-stat">
       <div class="hero-stat-label">Partidos restantes</div>
@@ -46,7 +52,7 @@
     </div>
 
     <div>
-      <PredictionForm @saved="onSaved" @cancel="cancelEdit" :editing="editing" />
+      <PredictionForm @saved="onSaved" :editing="editing" />
     </div>
   </div>
 
@@ -57,9 +63,70 @@
     :results="store.results"
     :leaderboard="store.leaderboard"
     @close="modalParticipant = null"
-    @edit="startEdit"
     @delete="onDelete"
   />
+
+  <div v-if="showRules" class="modal-backdrop" @click.self="showRules = false">
+    <div class="modal" role="dialog" aria-modal="true">
+      <header>
+        <h2>Reglas de puntuación</h2>
+        <button class="btn ghost" @click="showRules = false" aria-label="Cerrar">✕</button>
+      </header>
+      <div class="body">
+        <p class="muted" style="font-size:13px; margin-top:0;">
+          Las reglas se evalúan en cascada: se aplica la de mayor valor que coincida.
+          Si ninguna aplica, sumás 0 puntos.
+        </p>
+        <div class="rules-list">
+          <div class="rule-item">
+            <span class="rule-pts rule-pts-1">8 pts</span>
+            <div class="rule-text">
+              <strong>Ganador + marcador exacto.</strong>
+              <span class="muted">Acertaste quién gana Y el resultado exacto.</span>
+            </div>
+          </div>
+          <div class="rule-item">
+            <span class="rule-pts rule-pts-2">7 pts</span>
+            <div class="rule-text">
+              <strong>Ganador + acierto parcial.</strong>
+              <span class="muted">Acertaste el ganador y uno de los dos goles (a favor <strong>o</strong> en contra).</span>
+            </div>
+          </div>
+          <div class="rule-item">
+            <span class="rule-pts rule-pts-3">6 pts</span>
+            <div class="rule-text">
+              <strong>Solo el ganador.</strong>
+              <span class="muted">Acertaste quién gana pero no acertaste ningún gol.</span>
+            </div>
+          </div>
+          <div class="rule-item">
+            <span class="rule-pts rule-pts-4">5 pts</span>
+            <div class="rule-text">
+              <strong>Clasificado correcto (solo penales).</strong>
+              <span class="muted">El partido terminó empate y elegiste bien quién pasó (técnicamente, ganador ≠ clasificado).</span>
+            </div>
+          </div>
+          <div class="rule-item">
+            <span class="rule-pts rule-pts-5">3 pts</span>
+            <div class="rule-text">
+              <strong>Marcador exacto, ganador errado.</strong>
+              <span class="muted">Adivinaste los goles pero no quién clasificó (caso típico de empate mal definido).</span>
+            </div>
+          </div>
+          <div class="rule-item">
+            <span class="rule-pts rule-pts-6">2 pts</span>
+            <div class="rule-text">
+              <strong>Marcador invertido.</strong>
+              <span class="muted">Acertaste los goles pero los equipos están al revés (ej: predijiste 3-0 local, terminó 0-3).</span>
+            </div>
+          </div>
+        </div>
+        <p class="muted" style="font-size:12px; margin-top:18px;">
+          Las inconsistencias lógicas (empates en eliminatorias, predicciones contradictorias) se listan en el panel de admin.
+        </p>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -73,6 +140,7 @@ const toast = inject('toast');
 
 const editing = ref(null);
 const modalParticipant = ref(null);
+const showRules = ref(false);
 
 const averageExact = computed(() => {
   if (!store.leaderboard.length || !store.matches.length) return 0;
@@ -119,12 +187,6 @@ function rankColor(i) {
 }
 
 function openModal(p) { modalParticipant.value = p; }
-function startEdit(p) {
-  editing.value = p;
-  modalParticipant.value = null;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-function cancelEdit() { editing.value = null; }
 async function onDelete(p) {
   if (!confirm(`¿Eliminar a ${p.name}? Sus predicciones se perderán.`)) return;
   try {
