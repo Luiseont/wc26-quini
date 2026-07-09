@@ -21,6 +21,18 @@
       <div
         v-for="m in stageMatches(stage.code)"
         :key="m.id"
+        class="match-block"
+      >
+        <div v-if="actualResultFor(m.id)" class="actual-result">
+          <span class="actual-result-label">Resultado</span>
+          <span class="actual-result-score">
+            <strong>{{ m.home }}</strong>
+            <span class="actual-result-numbers">{{ actualResultFor(m.id).home }} – {{ actualResultFor(m.id).away }}</span>
+            <strong>{{ m.away }}</strong>
+          </span>
+          <span class="actual-result-winner">→ {{ actualResultWinner(m.id) }} clasificó</span>
+        </div>
+      <div
         class="match-row"
         :class="{ 'has-source': m.home.startsWith('W') || m.away.startsWith('W') }"
       >
@@ -55,6 +67,7 @@
           ><span class="check">{{ pickFor(m.id) === 'away' ? '✓' : '○' }}</span> {{ m.away }}</button>
         </div>
         <span class="max">MAX 8</span>
+      </div>
       </div>
     </div>
 
@@ -162,6 +175,23 @@ const resolvedMatches = computed(() =>
 
 function stageMatches(code) {
   return resolvedMatches.value.filter(m => m.stage === code);
+}
+
+// Real result banner helpers. Returns the result object only if the admin
+// has marked the match as finished (otherwise null → banner hidden).
+function actualResultFor(matchId) {
+  const r = store.resultsById.get(matchId);
+  return r && r.finished ? r : null;
+}
+
+function actualResultWinner(matchId) {
+  const r = actualResultFor(matchId);
+  if (!r) return '';
+  if (r.qualified === 'home') return store.matchesById.get(matchId)?.home || '';
+  if (r.qualified === 'away') return store.matchesById.get(matchId)?.away || '';
+  if (r.home > r.away) return store.matchesById.get(matchId)?.home || '';
+  if (r.away > r.home) return store.matchesById.get(matchId)?.away || '';
+  return '';
 }
 
 function getPred(matchId, key) {
