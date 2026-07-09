@@ -1,6 +1,9 @@
 <template>
   <section class="card flex-col">
-    <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:18px; border-bottom:1px solid var(--line); margin-bottom:18px;">
+    <div v-if="checked === null" class="muted" style="padding: 20px 0; text-align: center;">Comprobando sesión…</div>
+
+    <template v-else>
+    <div v-if="isAdmin" style="display:flex; align-items:center; justify-content:space-between; padding-bottom:18px; border-bottom:1px solid var(--line); margin-bottom:18px;">
       <div style="display:flex; align-items:center; gap:12px;">
         <div class="topbar-brand">QUINIELA<span class="dot">·</span>WC26</div>
         <div style="font-size:11px; padding:3px 8px; background: rgba(239,68,68,.1); color: var(--accent-bad); border:1px solid rgba(239,68,68,.3); border-radius:4px; letter-spacing:.05em; text-transform:uppercase; font-weight:700;">ADMIN</div>
@@ -122,7 +125,8 @@
             <span><strong>{{ i.participantName }} · {{ i.matchId }}</strong> · {{ i.message }}</span>
           </div>
         </div>
-      </div>
+</div>
+    </template>
     </template>
   </section>
 </template>
