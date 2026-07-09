@@ -3,6 +3,7 @@ import { getParticipant, updateParticipant, deleteParticipant, listResults } fro
 
 export default handler(async (req, res) => {
   const id = req.query?.id || (req.url || '').split('?')[0].split('/').pop();
+  console.log('Participant handler', req.method, id);
   if (!id) return sendJson(res, 400, { error: 'id requerido' });
 
   if (req.method === 'GET') {
