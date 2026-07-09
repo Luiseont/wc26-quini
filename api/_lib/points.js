@@ -186,13 +186,32 @@ export function scorePrediction(prediction, result) {
 }
 
 export function totalFor(predictions, results) {
-  const byId = new Map(results.map(r => [r.matchId, r]));
+  const byPred = new Map(predictions.map(p => [p.matchId, p]));
+  const byResult = new Map(results.map(r => [r.matchId, r]));
+  // Include every match that has either a prediction or a result, so the
+  // leaderboard renders a full 7-row grid for every participant even when
+  // a late-registered boleta has no prediction for a finished match.
+  const allIds = new Set();
+  for (const p of predictions) allIds.add(p.matchId);
+  for (const r of results) allIds.add(r.matchId);
   let total = 0;
   const perMatch = [];
-  for (const p of predictions) {
-    const r = byId.get(p.matchId);
+  for (const matchId of allIds) {
+    const p = byPred.get(matchId);
+    const r = byResult.get(matchId);
+    if (!p) {
+      perMatch.push({
+        matchId,
+        points: 0,
+        rule: null,
+        explanation: r && r.finished
+          ? 'No predijiste este partido'
+          : (r ? 'No predijiste este partido' : 'Sin predicción'),
+      });
+      continue;
+    }
     if (!r) {
-      perMatch.push({ matchId: p.matchId, points: 0, rule: null, explanation: 'Sin resultado cargado' });
+      perMatch.push({ matchId, points: 0, rule: null, explanation: 'Sin resultado cargado' });
       continue;
     }
     const s = scorePrediction(p, r);

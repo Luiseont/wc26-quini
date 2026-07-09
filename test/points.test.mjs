@@ -154,6 +154,22 @@ test('totalFor with missing result contributes 0 and reports it', () => {
   assert.match(perMatch[0].explanation, /sin resultado/i);
 });
 
+test('totalFor includes matches with no prediction (late-register behaviour)', () => {
+  // Participant only predicted QF2. QF1 has a finished result but no prediction.
+  // The leaderboard should still show QF1 in perMatch with 0 pts and an explanation.
+  const { total, perMatch } = totalFor(
+    [p('QF2', 2, 1)],
+    [r('QF1', 2, 1), r('QF2', 3, 2)],
+  );
+  // QF2: predicted 2-1, actual 3-2 -> winner+no-score = 6 pts
+  assert.equal(total, 6);
+  const ids = perMatch.map(m => m.matchId).sort();
+  assert.deepEqual(ids, ['QF1', 'QF2']);
+  const qf1 = perMatch.find(m => m.matchId === 'QF1');
+  assert.equal(qf1.points, 0);
+  assert.match(qf1.explanation, /no predijiste/i);
+});
+
 test('Rule 5 vs 1 priority when both could apply (penalty case)', () => {
   // If the predicted score is a draw but the actual is the same draw with an explicit
   // qualifier, the predicted winner is "draw" so rule 1 (winner+exact) is unreachable.

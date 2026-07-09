@@ -123,18 +123,40 @@ test('Admin can update a result with the right key', async () => {
   assert.equal(body.result.away, 1);
 });
 
-test('New participant blocked after results loaded (predictions closed)', async () => {
-  // QF1 was finalized in the previous test. A new participant must be rejected.
+test('Latecomer can register after results loaded (started matches score 0)', async () => {
+  // QF1 was finalized in the previous test. A new participant may still
+  // register, but their prediction for the started match is dropped so they
+  // earn 0 points for it.
   const { status, body } = await fetchJson('/api/participants', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: 'Latecomer',
-      predictions: [{ matchId: 'QF1', home: 1, away: 0 }],
+      predictions: [
+        { matchId: 'QF1', home: 1, away: 0 },   // started -> dropped
+        { matchId: 'QF2', home: 2, away: 1 },   // not started -> kept
+      ],
     }),
   });
-  assert.equal(status, 409);
-  assert.match(body.error, /predicciones se cierran|ya hay resultados/i);
+  assert.equal(status, 201);
+  // QF1 should not be in the saved predictions
+  assert.ok(!body.participant.predictions.find(p => p.matchId === 'QF1'),
+    'Started match should be dropped from saved predictions');
+  assert.ok(body.participant.predictions.find(p => p.matchId === 'QF2'),
+    'Unstarted match should be kept');
+});
+
+test('Leaderboard: latecomer gets 0 for the started match', async () => {
+  const { status, body } = await fetchJson('/api/leaderboard');
+  assert.equal(status, 200);
+  const late = body.leaderboard.find(p => p.name === 'Latecomer');
+  assert.ok(late, 'Latecomer should appear in leaderboard');
+  const qf1 = late.perMatch.find(m => m.matchId === 'QF1');
+  assert.equal(qf1.points, 0);
+  assert.match(qf1.explanation, /no predijiste/i);
+  // QF2 has no result loaded yet — also 0 pts
+  const qf2 = late.perMatch.find(m => m.matchId === 'QF2');
+  assert.equal(qf2.points, 0);
 });
 
 test('Leaderboard reflects entered result', async () => {

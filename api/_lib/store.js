@@ -53,6 +53,21 @@ function mem() {
 
 // ---- Participants ----
 
+// A match is considered "started" once the admin has entered scores (or marked
+// it as finished). New participants may still register after this point, but
+// their predictions for started matches are dropped — the boleta shows an
+// empty value for those games and earns 0 points from them.
+async function startedMatchIds() {
+  const results = await listResults();
+  const out = new Set();
+  for (const r of results) {
+    if (r.finished || Number.isInteger(r.home) || Number.isInteger(r.away)) {
+      out.add(r.matchId);
+    }
+  }
+  return out;
+}
+
 export async function listParticipants() {
   await connect();
   if (mode === 'kv') {
@@ -85,10 +100,11 @@ export async function getParticipant(id) {
 export async function createParticipant({ name, predictions }) {
   await connect();
   const now = new Date().toISOString();
+  const started = await startedMatchIds();
   const doc = {
     id: cryptoRandomId(),
     name: String(name || '').trim().slice(0, 60),
-    predictions: normalizePredictions(predictions),
+    predictions: normalizePredictions(predictions, started),
     createdAt: now,
     updatedAt: now,
   };
@@ -128,7 +144,8 @@ export async function updateParticipant(id, patch) {
     update.name = name;
   }
   if (patch.predictions !== undefined) {
-    update.predictions = normalizePredictions(patch.predictions);
+    const started = await startedMatchIds();
+    update.predictions = normalizePredictions(patch.predictions, started);
   }
 
   if (mode === 'kv') {
@@ -295,11 +312,11 @@ function ensureAllMatches(docs) {
   return MATCHES.map(m => map.get(m.id) || defaultResult(m.id));
 }
 
-function normalizePredictions(predictions) {
+function normalizePredictions(predictions, startedMatchIds = new Set()) {
   if (!Array.isArray(predictions)) return [];
   const allowed = new Set(MATCHES.map(m => m.id));
   return predictions
-    .filter(p => p && allowed.has(p.matchId))
+    .filter(p => p && allowed.has(p.matchId) && !startedMatchIds.has(p.matchId))
     .map(p => {
       const out = { matchId: p.matchId };
       if (p.qualified === 'home' || p.qualified === 'away') out.qualified = p.qualified;

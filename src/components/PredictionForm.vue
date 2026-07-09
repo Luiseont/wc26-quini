@@ -34,7 +34,10 @@
         </div>
       <div
         class="match-row"
-        :class="{ 'has-source': m.home.startsWith('W') || m.away.startsWith('W') }"
+        :class="{
+          'has-source': m.home.startsWith('W') || m.away.startsWith('W'),
+          'is-locked': isStarted(m.id),
+        }"
       >
         <span class="id">{{ m.id }}</span>
         <span class="team right">{{ m.home }}</span>
@@ -42,14 +45,16 @@
           type="number" min="0" max="30"
           :value="getPred(m.id, 'home')"
           @input="setScore(m.id, 'home', $event.target.value)"
-          :placeholder="'-'"
+          :placeholder="isStarted(m.id) ? '🔒' : '-'"
+          :disabled="isStarted(m.id)"
         />
         <span class="vs">VS</span>
         <input
           type="number" min="0" max="30"
           :value="getPred(m.id, 'away')"
           @input="setScore(m.id, 'away', $event.target.value)"
-          :placeholder="'-'"
+          :placeholder="isStarted(m.id) ? '🔒' : '-'"
+          :disabled="isStarted(m.id)"
         />
         <span class="team">{{ m.away }}</span>
         <div class="classified-pills">
@@ -57,16 +62,20 @@
             type="button"
             class="pill"
             :class="{ on: pickFor(m.id) === 'home' }"
+            :disabled="isStarted(m.id)"
             @click="setPick(m.id, 'home')"
           ><span class="check">{{ pickFor(m.id) === 'home' ? '✓' : '○' }}</span> {{ m.home }}</button>
           <button
             type="button"
             class="pill"
             :class="{ on: pickFor(m.id) === 'away' }"
+            :disabled="isStarted(m.id)"
             @click="setPick(m.id, 'away')"
           ><span class="check">{{ pickFor(m.id) === 'away' ? '✓' : '○' }}</span> {{ m.away }}</button>
         </div>
-        <span class="max">MAX 8</span>
+        <span class="max" :class="{ muted: isStarted(m.id) }">
+          {{ isStarted(m.id) ? '0 PTS' : 'MAX 8' }}
+        </span>
       </div>
       </div>
     </div>
@@ -184,6 +193,14 @@ function actualResultFor(matchId) {
   return r && r.finished ? r : null;
 }
 
+// A match is "started" once the admin has entered scores (or finalized it).
+// Started matches are read-only — predictions for them are dropped on save
+// so the participant earns 0 points for those games.
+function isStarted(matchId) {
+  const r = store.resultsById.get(matchId);
+  return !!(r && (r.finished || Number.isInteger(r.home) || Number.isInteger(r.away)));
+}
+
 function actualResultWinner(matchId) {
   const r = actualResultFor(matchId);
   if (!r) return '';
@@ -199,6 +216,7 @@ function getPred(matchId, key) {
 }
 
 function setScore(matchId, key, val) {
+  if (isStarted(matchId)) return;
   const v = val === '' ? null : Number(val);
   if (v !== null && (!Number.isInteger(v) || v < 0 || v > 30)) return;
   if (!predictions[matchId]) predictions[matchId] = { home: null, away: null, qualified: null };
@@ -217,6 +235,7 @@ function autoPickFromScore(matchId) {
 }
 
 function setPick(matchId, side) {
+  if (isStarted(matchId)) return;
   if (!predictions[matchId]) predictions[matchId] = { home: null, away: null, qualified: null };
   predictions[matchId].qualified = side;
 }

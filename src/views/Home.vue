@@ -53,9 +53,9 @@
 
     <div>
       <div v-if="tournamentStarted" class="banner warn" style="margin-bottom: 14px;">
-        <span><strong>Torneo en curso.</strong> Las predicciones están cerradas: ya hay resultados cargados.</span>
+        <span><strong>Torneo en curso.</strong> Las predicciones para partidos ya iniciados no sumarán puntos (quedan en 0).</span>
       </div>
-      <PredictionForm v-else @saved="onSaved" :editing="editing" />
+      <PredictionForm @saved="onSaved" :editing="editing" />
     </div>
   </div>
 
