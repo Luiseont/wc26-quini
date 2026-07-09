@@ -116,7 +116,7 @@ Sin KV configurado, la app sigue funcionando pero usa el store en memoria
 | POST | `/api/admin/reset` | Borra todo *(admin, requiere `confirm: "RESET"`)* |
 
 Las rutas marcadas con *(admin)* requieren el header `x-admin-key` con el
-valor de `ADMIN_KEY`. La UI guarda la clave en `localStorage` la primera vez
+valor hardcodeado en `api/_lib/auth.js`. La UI guarda la clave en `localStorage` la primera vez
 que se introduce en la pantalla `/admin`.
 
 ## Tests
