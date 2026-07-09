@@ -1,0 +1,32 @@
+{
+  "name": "wc26-quini",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:web": "vite",
+    "dev:api": "node server/dev-api.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server/dev-api.mjs",
+    "test:points": "node --test test/points.test.mjs",
+    "test:api": "node --test test/api.test.mjs"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "mongodb": "^6.8.0",
+    "pinia": "^2.2.2",
+    "vue": "^3.4.38",
+    "vue-router": "^4.4.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.2",
+    "concurrently": "^8.2.2",
+    "vite": "^5.4.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
