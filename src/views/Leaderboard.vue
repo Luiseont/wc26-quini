@@ -101,6 +101,7 @@ function cellClass(m) {
   if (!m.points && m.points !== 0) return 'cell-pending';
   if (m.rule === 'EXACT_WINNER_SCORE') return 'cell-gold';
   if (m.rule === 'EXACT_SCORE_DIFFERENT_WINNER') return 'cell-gold';
+  if (m.rule === 'INVERTED_SCORE') return 'cell-warn';
   if (m.points > 0) return 'cell-good';
   return 'cell-bad';
 }

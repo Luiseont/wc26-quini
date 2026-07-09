@@ -14,6 +14,7 @@ puntos por participante y un panel de admin para cargar resultados.
 | 3 | Solo el equipo ganador | 6 |
 | 4 | Equipo clasificado (solo aplica si ganador y clasificado se definen por separado, ej. penales) | 5 |
 | 5 | Marcador exacto, independientemente del ganador | 3 |
+| 6 | Marcador invertido (goles correctos pero equipos invertidos) | 2 |
 
 Las reglas se evalúan en cascada y se aplica la de mayor valor que coincida.
 El sistema detecta inconsistencias lógicas (empates en eliminatorias,

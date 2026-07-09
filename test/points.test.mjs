@@ -187,6 +187,34 @@ test('Rule 4: predicted qualifier wrong on a draw', () => {
   assert.equal(s.rule, null);
 });
 
+test('Rule 6: inverted score (home 3-0 vs actual 0-3)', () => {
+  // User predicted home 3-0 away, but actual is home 0-3 away (away won).
+  // Scores are inverted: predicted.home (3) === actual.away (3) and
+  // predicted.away (0) === actual.home (0).
+  const s = scorePrediction(p('QF1', 3, 0), r('QF1', 0, 3));
+  assert.equal(s.points, 2);
+  assert.equal(s.rule, 'INVERTED_SCORE');
+});
+
+test('Rule 6: inverted score with partial-match example (2-1 vs 1-2)', () => {
+  const s = scorePrediction(p('QF1', 2, 1), r('QF1', 1, 2));
+  assert.equal(s.points, 2);
+  assert.equal(s.rule, 'INVERTED_SCORE');
+});
+
+test('Rule 6 does NOT fire when other higher-priority rules apply', () => {
+  // Inverted shape but with a winner+exact: predicted 3-0, actual 0-3
+  // isn't exact, so rule 1 doesn't fire. But let's make sure: if the user
+  // had an exact score with a wrong winner (rule 5 case), rule 6 doesn't
+  // override it. Rule 5 case = draw with different qualifier.
+  const s = scorePrediction(
+    { matchId: 'QF1', home: 1, away: 1, qualified: 'home' },
+    { matchId: 'QF1', home: 1, away: 1, finished: true, qualified: 'away' },
+  );
+  assert.equal(s.points, 3);
+  assert.equal(s.rule, 'EXACT_SCORE_DIFFERENT_WINNER');
+});
+
 test('RULE_POINTS exports the expected canonical order', () => {
-  assert.deepEqual(RULE_POINTS, [8, 7, 6, 5, 3]);
+  assert.deepEqual(RULE_POINTS, [8, 7, 6, 5, 3, 2]);
 });

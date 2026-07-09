@@ -14,8 +14,13 @@
 // from the score-derived winner (e.g. penalty shootout where the score is
 // listed as 1-1 but the admin tagged one team as the qualifier). The audit
 // reports any such cases.
+//
+// Rule 6 (added 2026-07): inverted score — predicted.home == actual.away
+// and predicted.away == actual.home (e.g., you said A wins 3-0 but B
+// actually wins 3-0). Worth 2 pts as a consolation when you read the match
+// upside-down. Lower priority than all other rules.
 
-export const RULE_POINTS = [8, 7, 6, 5, 3];
+export const RULE_POINTS = [8, 7, 6, 5, 3, 2];
 
 export function determineWinner(home, away) {
   if (home == null || away == null) return null;
@@ -102,11 +107,13 @@ export function scorePrediction(prediction, result) {
   const goalsHomeMatch = prediction.home === result.home;
   const goalsAwayMatch = prediction.away === result.away;
   const partialScore = (goalsHomeMatch || goalsAwayMatch) && !exactScore;
+  const scoreInverted = !exactScore && prediction.home === result.away && prediction.away === result.home;
 
   breakdown.exactScore = exactScore;
   breakdown.partialScore = partialScore;
   breakdown.goalsHomeMatch = goalsHomeMatch;
   breakdown.goalsAwayMatch = goalsAwayMatch;
+  breakdown.scoreInverted = scoreInverted;
 
   const winnerCorrect = predictedWinner !== 'draw' && predictedWinner === actualWinner;
   const qualifierCorrect = predictedQualifier && actualQualifier && predictedQualifier === actualQualifier;
@@ -118,10 +125,11 @@ export function scorePrediction(prediction, result) {
     WINNER_ONLY: winnerCorrect && !exactScore && !partialScore,
     QUALIFIED_TEAM: qualifierCorrect && !winnerCorrect,
     EXACT_SCORE_DIFFERENT_WINNER: exactScore && !winnerCorrect,
+    INVERTED_SCORE: scoreInverted,
   };
 
   // Pick the highest-priority rule.
-  const order = ['EXACT_WINNER_SCORE', 'WINNER_PLUS_PARTIAL_SCORE', 'WINNER_ONLY', 'QUALIFIED_TEAM', 'EXACT_SCORE_DIFFERENT_WINNER'];
+  const order = ['EXACT_WINNER_SCORE', 'WINNER_PLUS_PARTIAL_SCORE', 'WINNER_ONLY', 'QUALIFIED_TEAM', 'EXACT_SCORE_DIFFERENT_WINNER', 'INVERTED_SCORE'];
   let rule = null;
   let points = 0;
   let explanation = 'Sin acierto';
@@ -135,6 +143,7 @@ export function scorePrediction(prediction, result) {
         WINNER_ONLY: 'Acertaste el ganador',
         QUALIFIED_TEAM: 'El equipo que respaldaste clasificó (sin acertar ganador)',
         EXACT_SCORE_DIFFERENT_WINNER: 'Marcador exacto, pero con ganador equivocado',
+        INVERTED_SCORE: 'Marcador invertido (acertaste los goles pero no los equipos)',
       }[k];
       break;
     }
