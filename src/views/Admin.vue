@@ -13,7 +13,7 @@
         <strong>Introduce la clave de admin</strong>
         <span class="muted" style="font-size:13px;">Solo quien tenga la clave puede cargar resultados.</span>
         <div class="row" style="margin-top:6px;">
-          <input v-model="adminKey" class="input" type="password" placeholder="ADMIN_KEY" @keyup.enter="checkKey" style="max-width:280px;" />
+          <input v-model="adminKey" class="input" type="password" placeholder="Contraseña de admin" @keyup.enter="checkKey" style="max-width:280px;" />
           <button class="btn primary" @click="checkKey" :disabled="checking">Entrar</button>
         </div>
         <span v-if="checkError" class="text-bad" style="font-size:13px;">{{ checkError }}</span>
