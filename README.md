@@ -72,8 +72,7 @@ desarrollo, **no apto para producción** (los datos se pierden al reiniciar).
 
 | Variable | Descripción | Default |
 |----------|-------------|---------|
-| `KV_REST_API_URL` | Endpoint de Vercel KV (auto-inyectada) | (vacío → memoria) |
-| `KV_REST_API_TOKEN` | Token de Vercel KV (auto-inyectada) | (vacío) |
+| `REDIS_URL` | URL de conexión Redis (auto-inyectada por Vercel) | (vacío → memoria) |
 | `MONGODB_URI` | Legacy: cadena de conexión MongoDB | (vacío) |
 | `MONGODB_DB` | Legacy: nombre de DB | `wc26_quini` |
 | `ALLOWED_ORIGIN` | Origen CORS permitido | `*` |
@@ -85,15 +84,15 @@ La contraseña de admin **no** se configura por env var; está hardcodeada.
 1. Subí el repo a GitHub.
 2. Creá un proyecto en Vercel apuntando al repo. Vercel detecta Vite y las
    funciones en `/api` automáticamente.
-3. En el dashboard del proyecto: **Storage → Create Database → KV**. Vercel
-   inyecta `KV_REST_API_URL` y `KV_REST_API_TOKEN` como variables de entorno
-   automáticamente.
-4. Hacé deploy. La app debería funcionar con Vercel KV.
+3. En el dashboard del proyecto: **Storage → Create Database → Redis**
+   (Vercel-oficial, powered by Upstash). Vercel inyecta `REDIS_URL` como
+   variable de entorno automáticamente.
+4. Hacé deploy. La app debería funcionar con Redis.
 
 **Admin:** la contraseña es `wc26-amigos-2026` (hardcodeada en
 `api/_lib/auth.js`, no requiere variable de entorno).
 
-Sin KV configurado, la app sigue funcionando pero usa el store en memoria
+Sin Redis configurado, la app sigue funcionando pero usa el store en memoria
 (los datos se pierden en cada cold start de las funciones serverless).
 
 ## API
