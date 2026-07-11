@@ -47,12 +47,14 @@ test('Rule 3: winner only (no score match) -> 6 pts', () => {
   assert.equal(s.rule, 'WINNER_ONLY');
 });
 
-test('Rule 4: qualifier correct without winner (e.g. penalties recorded as 0-0 with explicit qualifier) -> 5 pts', () => {
-  // predicted: home 1-0, actual: 0-0 with home tagged as qualifier (penalty win for home)
+test('Rule 4 (general): qualifier correct without winner (penalty case with wrong score) -> 2 pts', () => {
+  // predicted: home 1-0, actual: 0-0 with home tagged as qualifier (penalty win for home).
+  // The user got the qualifier right but did NOT predict the exact draw score.
   // winnerCorrect is false (the score is a draw), but qualifierCorrect is true.
   const s = scorePrediction(p('QF1', 1, 0), r('QF1', 0, 0, true, 'home'));
-  assert.equal(s.points, 5);
+  assert.equal(s.points, 2);
   assert.equal(s.rule, 'QUALIFIED_TEAM');
+  assert.ok(s.issues.some(i => i.code === 'RULE_4_TRIGGERED'));
 });
 
 test('Rule 4: qualifier mismatch (predicted home, actual away qualifier) -> 0 pts', () => {
@@ -103,12 +105,13 @@ test('Result registered as a draw without qualifier is flagged', () => {
   assert.ok(s.issues.some(i => i.code === 'RESULT_IS_DRAW'));
 });
 
-test('Result registered as a draw WITH explicit qualifier triggers a normal match', () => {
-  // predicted home 1-0, actual 0-0 with home qualifier (e.g. decided by penalties)
+test('Result registered as a draw WITH explicit qualifier triggers the qualifier rule (general case)', () => {
+  // predicted home 1-0, actual 0-0 with home qualifier (e.g. decided by penalties).
+  // The user got the qualifier right but did not predict the exact draw score.
   const s = scorePrediction(p('QF1', 1, 0), r('QF1', 0, 0, true, 'home'));
   // predicted winner = home, actual qualifier = home. winnerCorrect=false (actual winner is draw),
-  // but qualifierCorrect=true. So rule 4 → 5 pts.
-  assert.equal(s.points, 5);
+  // but qualifierCorrect=true. Since exactScore=false (1!=0, 0!=0) this falls to rule QUALIFIED_TEAM → 2 pts.
+  assert.equal(s.points, 2);
   assert.equal(s.rule, 'QUALIFIED_TEAM');
 });
 
@@ -179,18 +182,57 @@ test('Rule 5 vs 1 priority when both could apply (penalty case)', () => {
   assert.equal(s.rule, 'EXACT_SCORE_DIFFERENT_WINNER');
 });
 
-test('Rule 4: predicted qualifier correct on a draw (penalty win)', () => {
+test('Rule 4 (general): predicted qualifier correct on a draw with wrong score -> 2 pts', () => {
   // Luis predicted 0-0 with qualified=away. Actual is 1-1 with qualified=away.
-  // Scores differ so rule 5 (exact score) doesn't apply.
+  // Scores differ so the new QUALIFIED_TEAM_ON_DRAW_EXACT rule does not apply.
   // predictedWinner='draw', predictedQualifier='away' (explicit).
   // winnerCorrect=false, qualifierCorrect=true.
-  // → Rule 4 (QUALIFIED_TEAM): 5 pts.
+  // → Rule QUALIFIED_TEAM: 2 pts.
   const s = scorePrediction(
     { matchId: 'QF2', home: 0, away: 0, qualified: 'away' },
     { matchId: 'QF2', home: 1, away: 1, finished: true, qualified: 'away' },
   );
-  assert.equal(s.points, 5);
+  assert.equal(s.points, 2);
   assert.equal(s.rule, 'QUALIFIED_TEAM');
+});
+
+test('Rule 4 (NEW): predicted exact draw + correct qualifier -> 5 pts', () => {
+  // Luis predicted 1-1 with qualified=home. Actual is 1-1 with qualified=home.
+  // The user got BOTH the exact draw score AND the right qualifier.
+  // predictedWinner='draw', predictedQualifier='home' (explicit).
+  // winnerCorrect=false, qualifierCorrect=true, exactScore=true, actualWinner='draw'.
+  // → Rule QUALIFIED_TEAM_ON_DRAW_EXACT: 5 pts.
+  const s = scorePrediction(
+    { matchId: 'QF2', home: 1, away: 1, qualified: 'home' },
+    { matchId: 'QF2', home: 1, away: 1, finished: true, qualified: 'home' },
+  );
+  assert.equal(s.points, 5);
+  assert.equal(s.rule, 'QUALIFIED_TEAM_ON_DRAW_EXACT');
+  assert.ok(s.issues.some(i => i.code === 'RULE_DRAW_QUALIFIED_TRIGGERED'));
+});
+
+test('Rule 4 (NEW): predicted exact draw + correct qualifier (away side) -> 5 pts', () => {
+  // Same case but the qualifier is the away team.
+  const s = scorePrediction(
+    { matchId: 'QF2', home: 0, away: 0, qualified: 'away' },
+    { matchId: 'QF2', home: 0, away: 0, finished: true, qualified: 'away' },
+  );
+  assert.equal(s.points, 5);
+  assert.equal(s.rule, 'QUALIFIED_TEAM_ON_DRAW_EXACT');
+});
+
+test('Rule 4 (NEW): exact draw but wrong qualifier -> 3 pts (rule 5 takes over)', () => {
+  // User predicted 1-1 with qualified=home. Actual is 1-1 with qualified=away.
+  // exactScore=true, qualifierCorrect=false, winnerCorrect=false.
+  // QUALIFIED_TEAM_ON_DRAW_EXACT does not fire (qualifier wrong).
+  // QUALIFIED_TEAM does not fire (qualifier wrong).
+  // → Rule 5 (EXACT_SCORE_DIFFERENT_WINNER): 3 pts.
+  const s = scorePrediction(
+    { matchId: 'QF2', home: 1, away: 1, qualified: 'home' },
+    { matchId: 'QF2', home: 1, away: 1, finished: true, qualified: 'away' },
+  );
+  assert.equal(s.points, 3);
+  assert.equal(s.rule, 'EXACT_SCORE_DIFFERENT_WINNER');
 });
 
 test('Rule 4: predicted qualifier wrong on a draw', () => {
@@ -232,5 +274,5 @@ test('Rule 6 does NOT fire when other higher-priority rules apply', () => {
 });
 
 test('RULE_POINTS exports the expected canonical order', () => {
-  assert.deepEqual(RULE_POINTS, [8, 7, 6, 5, 3, 2]);
+  assert.deepEqual(RULE_POINTS, [8, 7, 6, 5, 2, 3, 2]);
 });

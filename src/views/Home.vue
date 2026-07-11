@@ -105,8 +105,15 @@
           <div class="rule-item">
             <span class="rule-pts rule-pts-4">5 pts</span>
             <div class="rule-text">
-              <strong>Clasificado correcto (solo penales).</strong>
-              <span class="muted">El partido terminó empate y elegiste bien quién pasó (técnicamente, ganador ≠ clasificado).</span>
+              <strong>Empate exacto + clasificado correcto.</strong>
+              <span class="muted">El partido terminó empate y predijiste el marcador exacto del empate (ej. 1-1) y quién pasó (típicamente por penales).</span>
+            </div>
+          </div>
+          <div class="rule-item">
+            <span class="rule-pts rule-pts-4b">2 pts</span>
+            <div class="rule-text">
+              <strong>Clasificado correcto (caso general).</strong>
+              <span class="muted">Acertaste quién clasificó sin predecir el marcador exacto del empate (ej. predijiste 2-0 y terminó 1-1 con tu equipo pasando por penales).</span>
             </div>
           </div>
           <div class="rule-item">

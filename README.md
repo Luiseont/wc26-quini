@@ -12,9 +12,10 @@ puntos por participante y un panel de admin para cargar resultados.
 | 1 | Equipo ganador + marcador exacto | 8 |
 | 2 | Ganador + acierto parcial (goles a favor **o** en contra, no ambos) | 7 |
 | 3 | Solo el equipo ganador | 6 |
-| 4 | Equipo clasificado (solo aplica si ganador y clasificado se definen por separado, ej. penales) | 5 |
-| 5 | Marcador exacto, independientemente del ganador | 3 |
-| 6 | Marcador invertido (goles correctos pero equipos invertidos) | 2 |
+| 4 | Empate exacto + clasificado correcto (marcador exacto de empate, ej. 1-1, más quién pasó) | 5 |
+| 5 | Clasificado correcto (caso general: acertás quién pasa sin predecir el marcador exacto del empate) | 2 |
+| 6 | Marcador exacto, independientemente del ganador | 3 |
+| 7 | Marcador invertido (goles correctos pero equipos invertidos) | 2 |
 
 Las reglas se evalúan en cascada y se aplica la de mayor valor que coincida.
 El sistema detecta inconsistencias lógicas (empates en eliminatorias,

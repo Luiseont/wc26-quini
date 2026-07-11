@@ -5,22 +5,27 @@
 //   1. Winner correct + exact score         -> 8 pts
 //   2. Winner correct + goals_for OR goals_against match (but not both) -> 7 pts
 //   3. Winner correct                       -> 6 pts
-//   4. Qualified team correct               -> 5 pts  (rare in a knockout, see below)
-//   5. Exact score regardless of winner     -> 3 pts
+//   4. Draw + exact score + qualifier correct -> 5 pts (penalty case, see below)
+//   5. Qualifier correct (other cases)      -> 2 pts
+//   6. Exact score regardless of winner     -> 3 pts
 //
 // In a knockout match the team that wins IS the team that qualifies, so rules
-// 3 and 4 are mutually exclusive: rule 3 always wins. Rule 4 only fires when
-// the actual match is recorded with an explicit `qualified` field that differs
-// from the score-derived winner (e.g. penalty shootout where the score is
-// listed as 1-1 but the admin tagged one team as the qualifier). The audit
+// 3 and 4/5 are mutually exclusive: rule 3 always wins. Rules 4 and 5 only
+// fire when the actual match is recorded with an explicit `qualified` field
+// that differs from the score-derived winner (e.g. penalty shootout where the
+// score is listed as 1-1 but the admin tagged one team as the qualifier).
+// Rule 4 rewards predicting the exact draw score AND the right qualifier;
+// rule 5 is the generic fallback (just the right qualifier). The audit
 // reports any such cases.
 //
 // Rule 6 (added 2026-07): inverted score — predicted.home == actual.away
 // and predicted.away == actual.home (e.g., you said A wins 3-0 but B
 // actually wins 3-0). Worth 2 pts as a consolation when you read the match
 // upside-down. Lower priority than all other rules.
+//
+// Rule 7 (EXACT_SCORE_DIFFERENT_WINNER, 3 pts): exact score but winner wrong.
 
-export const RULE_POINTS = [8, 7, 6, 5, 3, 2];
+export const RULE_POINTS = [8, 7, 6, 5, 2, 3, 2];
 
 export function determineWinner(home, away) {
   if (home == null || away == null) return null;
@@ -123,13 +128,14 @@ export function scorePrediction(prediction, result) {
     EXACT_WINNER_SCORE: winnerCorrect && exactScore,
     WINNER_PLUS_PARTIAL_SCORE: winnerCorrect && partialScore,
     WINNER_ONLY: winnerCorrect && !exactScore && !partialScore,
+    QUALIFIED_TEAM_ON_DRAW_EXACT: qualifierCorrect && actualWinner === 'draw' && exactScore,
     QUALIFIED_TEAM: qualifierCorrect && !winnerCorrect,
     EXACT_SCORE_DIFFERENT_WINNER: exactScore && !winnerCorrect,
     INVERTED_SCORE: scoreInverted,
   };
 
   // Pick the highest-priority rule.
-  const order = ['EXACT_WINNER_SCORE', 'WINNER_PLUS_PARTIAL_SCORE', 'WINNER_ONLY', 'QUALIFIED_TEAM', 'EXACT_SCORE_DIFFERENT_WINNER', 'INVERTED_SCORE'];
+  const order = ['EXACT_WINNER_SCORE', 'WINNER_PLUS_PARTIAL_SCORE', 'WINNER_ONLY', 'QUALIFIED_TEAM_ON_DRAW_EXACT', 'QUALIFIED_TEAM', 'EXACT_SCORE_DIFFERENT_WINNER', 'INVERTED_SCORE'];
   let rule = null;
   let points = 0;
   let explanation = 'Sin acierto';
@@ -141,6 +147,7 @@ export function scorePrediction(prediction, result) {
         EXACT_WINNER_SCORE: 'Ganador + marcador exacto',
         WINNER_PLUS_PARTIAL_SCORE: 'Ganador + acierto parcial de marcador',
         WINNER_ONLY: 'Acertaste el ganador',
+        QUALIFIED_TEAM_ON_DRAW_EXACT: 'Acertaste el marcador del empate y el clasificado',
         QUALIFIED_TEAM: 'El equipo que respaldaste clasificó (sin acertar ganador)',
         EXACT_SCORE_DIFFERENT_WINNER: 'Marcador exacto, pero con ganador equivocado',
         INVERTED_SCORE: 'Marcador invertido (acertaste los goles pero no los equipos)',
@@ -165,7 +172,13 @@ export function scorePrediction(prediction, result) {
   if (rule === 'QUALIFIED_TEAM') {
     issues.push({
       code: 'RULE_4_TRIGGERED',
-      message: 'Se aplicó la regla 4 (5 pts): el ganador y el clasificado fueron definidos por separado',
+      message: 'Se aplicó la regla de clasificado (2 pts): acertaste quién pasó sin predecir el marcador exacto del empate',
+    });
+  }
+  if (rule === 'QUALIFIED_TEAM_ON_DRAW_EXACT') {
+    issues.push({
+      code: 'RULE_DRAW_QUALIFIED_TRIGGERED',
+      message: 'Se aplicó la regla de empate exacto + clasificado (5 pts): acertaste el marcador del empate y quién pasó',
     });
   }
   if (rule === 'EXACT_SCORE_DIFFERENT_WINNER' && !exactScore) {
